@@ -1,0 +1,23 @@
+defaults:
+  prefix: v
+  minimumVersionIncrement: Major|Minor|Patch|PreRelease
+  patches:
+    - helm-chart
+    - csproj
+
+branches:
+  - name: "master"
+    tag: true
+    tagParts: Version
+    tagMessageFormat: "release %v - buildno: %bn"
+    preReleaseFormat: ""
+    buildMetadataFormat: ""
+  - name: ".*"
+    tag: false
+    patches:
+      - helm-chart
+      - csproj
+
+patches:
+  - name: helm-chart
+    files: "**/Chart.yaml"

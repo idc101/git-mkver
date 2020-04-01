@@ -63,6 +63,10 @@ object MkVer {
 
     lastVersionTag match {
       case version(major, minor, patch, prerelease, buildmetadata) => Version(major.toInt, minor.toInt, patch.toInt, Option(prerelease), Option(buildmetadata))
+      case _ =>
+        System.err.println(s"warning: unable to parse last tag. ($lastVersionTag) doesn't match a SemVer pattern")
+        System.exit(1)
+        Version(0, 0, 0, None, None)
     }
   }
 
@@ -72,9 +76,9 @@ object MkVer {
     val buildMetaData = VariableReplacer(versionData).replace(config.buildMetadataFormat)
     config.tagParts match {
       case TagParts.Version => version
-      case TagParts.VersionPreRelease => s"$version-$preRelease"
+      //case TagParts.VersionPreRelease => s"$version-$preRelease"
       case TagParts.VersionBuildMetadata =>s"$version+$buildMetaData"
-      case TagParts.VersionPreReleaseBuildMetadata =>s"$version-$preRelease+$buildMetaData"
+      //case TagParts.VersionPreReleaseBuildMetadata =>s"$version-$preRelease+$buildMetaData"
     }
   }
 
@@ -132,6 +136,16 @@ object MkVer {
       } else {
         calcBumps(lines.tail, bumps)
       }
+    }
+  }
+
+  def getCurrentBranch(): String = {
+    if (sys.env.contains("BUILD_SOURCEBRANCH")) {
+      // Azure Devops Pipeline
+      sys.env("BUILD_SOURCEBRANCH").replace("refs/heads/", "")
+    } else {
+      // TODO better fallback if we in detached head mode like build systems do
+      exec("git rev-parse --abbrev-ref HEAD").stdout
     }
   }
 

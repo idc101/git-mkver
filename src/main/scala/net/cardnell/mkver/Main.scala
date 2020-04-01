@@ -10,18 +10,13 @@ case class ProcessResult(stdout: String, stderr: String, exitCode: Int)
 
 object Main {
 
-  val patchConfigs = List(
-    PatchConfig("helm-chart", List("**/Chart.yaml"), "version: .*", "version: \"%ver\""),
-    PatchConfig("csproj", List("**/*.csproj"), "<Version>.*</Version>", "<Version>%ver</Version>")
-  )
-
   def main(args: Array[String]): Unit = {
     CommandLineArgs.mkverCommand.parse(args, sys.env) match {
       case Left(help) =>
         System.err.println(help)
         sys.exit(1)
-      case Right(NextOpts(_)) =>
-        runNext()
+      case Right(nextOps@NextOpts(_)) =>
+        runNext(nextOps)
       case Right(TagOpts(_)) =>
         runTag()
       case Right(PatchOpts(_)) =>
@@ -34,18 +29,21 @@ object Main {
     sys.exit(0)
   }
 
-  def runNext(): Unit = {
+  def runNext(nextOpts: NextOpts): Unit = {
     checkGitRepo()
-    val currentBranch = exec("git rev-parse --abbrev-ref HEAD").stdout
-    val config = getConfig(currentBranch)
+    val currentBranch = getCurrentBranch()
+    val config = AppConfig.getBranchConfig(currentBranch)
     val nextVersionData = getNextVersion(config, currentBranch)
-    println(formatTag(config, nextVersionData))
+    val output = nextOpts.format.map { format =>
+      VariableReplacer(nextVersionData).replace(format)
+    }.getOrElse(formatTag(config, nextVersionData))
+    println(output)
   }
 
   def runTag(): Unit = {
     checkGitRepo()
-    val currentBranch = exec("git rev-parse --abbrev-ref HEAD").stdout
-    val config = getConfig(currentBranch)
+    val currentBranch = getCurrentBranch()
+    val config = AppConfig.getBranchConfig(currentBranch)
     val nextVersion = getNextVersion(config, currentBranch)
     val tag = formatTag(config, nextVersion)
     val tagMessage = VariableReplacer(nextVersion).replace(config.tagMessageFormat)
@@ -54,21 +52,18 @@ object Main {
     }
   }
 
-  def runPatch() = {
-    val currentBranch = exec("git rev-parse --abbrev-ref HEAD").stdout
-    val config = getConfig(currentBranch)
+  def runPatch(): Unit = {
+    val currentBranch = getCurrentBranch()
+    val config = AppConfig.getBranchConfig(currentBranch)
     val nextVersion = getNextVersion(config, currentBranch)
-    patchConfigs.foreach { patch =>
-      val regex = patch.findRegex.r
+    AppConfig.getPatchConfigs(config).foreach { patch =>
+      val regex = patch.find.r
       val replacement = VariableReplacer(nextVersion).replace(patch.replace)
-      println(replacement)
       patch.filePatterns.foreach { filePattern =>
         File.currentWorkingDirectory.glob(filePattern, includePath = false).foreach { file =>
-          println(s"checking $file")
-          val newLines = file.lines().map { line =>
-            regex.replaceAllIn(line, replacement)
-          }
-          file.overwrite(newLines.mkString(System.lineSeparator()))
+          println(s"patching: $file, replacement: $replacement")
+          val newContent = regex.replaceAllIn(file.contentAsString, replacement)
+          file.overwrite(newContent)
         }
       }
     }
@@ -79,14 +74,6 @@ object Main {
     if (output.exitCode != 0) {
       System.err.println(output.stderr)
       System.exit(output.exitCode)
-    }
-  }
-
-  def getConfig(currentBranch: String): BranchConfig = {
-    if (currentBranch == "master") {
-      BranchConfig("master".r, "v", true, TagParts.Version, "release %v", "rc", "%sh", patchConfigs)
-    } else {
-      BranchConfig(".*".r, "v", false, TagParts.VersionBuildMetadata, "release %v", "rc", "%br.%sh", patchConfigs)
     }
   }
 }

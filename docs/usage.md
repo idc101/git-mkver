@@ -1,32 +1,3 @@
-#  git-mkver
-
-Helps version your software and patch version numbers into the build.
-
-For more information head to the [project site][https://git-mkver.github.com].
-
-## Features
-
-- Determine next version based on:
-    - Last tagged commit
-    - [Conventional Commits][https://www.conventionalcommits.org/]
-    - Branch names
-    - Manual tagging
-- Next version conforms to [Semantic Versioning][https://semver.org/] scheme
-- Patch the next version into the build:
-    - Java
-    - C#
-    - Many others, fully configurable
-- Tag the current commit with the next version
-
-All of this can be configured based on the branch name so release/master branches get different
-version numbers to develop or feature branches.
-
-## Installation
-
-Download the binary for your os from the releases page and copy to
-somewhere on your path.
-
-
 ## Usage
 
 Basic usage is to just call `git mkver next` and it will tell you the next

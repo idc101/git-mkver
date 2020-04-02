@@ -65,15 +65,12 @@ object MkVer {
   }
 
   def formatTag(config: BranchConfig, versionData: VersionData): String = {
-    val version = s"${config.prefix}${versionData.major}.${versionData.minor}.${versionData.patch}"
-    val preRelease = "TODO"
-    val buildMetaData = VariableReplacer(versionData, config).replace(config.buildMetadataFormat)
-    config.tagParts match {
-      case TagParts.Version => version
-      //case TagParts.VersionPreRelease => s"$version-$preRelease"
-      case TagParts.VersionBuildMetadata =>s"$version+$buildMetaData"
-      //case TagParts.VersionPreReleaseBuildMetadata =>s"$version-$preRelease+$buildMetaData"
+    val allowedFormats = Formatter.builtInFormats.map(_.name)
+    if (!allowedFormats.contains(config.tagFormat)) {
+      System.err.println(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}")
+      sys.exit(1)
     }
+    Formatter(versionData, config).format(s"${config.prefix}%${config.tagFormat}")
   }
 
   def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): VersionData = {

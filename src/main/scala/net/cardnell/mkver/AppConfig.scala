@@ -10,43 +10,50 @@ import better.files.File
 import com.typesafe.config.ConfigFactory
 import zio.config.typesafe.{TypeSafeConfigSource, TypesafeConfig}
 
+case class Format(name: String, format: String)
+object Format {
+  val formatDesc = (
+    string("name").describe("Name of format. Do not prefix with %. e.g. 'major-minor'") |@|
+    string("format").describe("Format string for this format. Can include other formats. e.g. '%x.%y'")
+    )(Format.apply, Format.unapply)
+}
 
 case class BranchConfig(name: String,
                         prefix: String,
                         tag: Boolean,
-                        tagParts: TagParts,
+                        tagFormat: String,
                         tagMessageFormat: String,
                         preReleaseName: String,
-                        buildMetadataFormat: String,
+                        formats: List[Format],
                         patches: List[String])
 
 case class BranchConfigOpt(name: String,
-                        prefix: Option[String],
-                        tag: Option[Boolean],
-                        tagParts: Option[TagParts],
-                        tagMessageFormat: Option[String],
-                        preReleaseName: Option[String],
-                        buildMetadataFormat: Option[String],
-                        patches: Option[List[String]])
+                           prefix: Option[String],
+                           tag: Option[Boolean],
+                           tagFormat: Option[String],
+                           tagMessageFormat: Option[String],
+                           preReleaseName: Option[String],
+                           formats: Option[List[Format]],
+                           patches: Option[List[String]])
 
 object BranchConfig {
     val nameDesc = string("name").describe("regex to match branch name on")
     val prefixDesc = string("prefix").describe("prefix for git tags")
     val tagDesc = boolean("tag").describe("whether to actually tag this branch when `mkver tag` is called")
-    val tagPartsDesc = string("tagParts")(TagParts.apply, TagParts.unapply).describe("")
+    val tagFormatDesc = string("tagFormat").describe("")
     val tagMessageFormatDesc = string("tagMessageFormat").describe("")
     val preReleaseNameDesc = string("preReleaseName").describe("")
-    val buildMetadataFormatDesc = string("buildMetadataFormat").describe("format string to produce build metadata part of a semantic version")
+    val formatsDesc = nested("formats")(list(Format.formatDesc)).describe("custom format strings")
     val patchesDesc = list(string("patches")).describe("Patch configs to be applied")
 
   val branchConfigDesc = (
       nameDesc.default(".*") |@|
       prefixDesc.default("v") |@|
       tagDesc.default(false) |@|
-      tagPartsDesc.default(TagParts.VersionBuildMetadata) |@|
+      tagFormatDesc.default("version") |@|
       tagMessageFormatDesc.default("release %ver") |@|
       preReleaseNameDesc.default("rc.") |@|
-      buildMetadataFormatDesc.default("%br.%sh") |@|
+      formatsDesc.default(Nil) |@|
       patchesDesc.default(Nil)
     )(BranchConfig.apply, BranchConfig.unapply)
 
@@ -54,31 +61,12 @@ object BranchConfig {
       nameDesc |@|
       prefixDesc.optional |@|
       tagDesc.optional |@|
-      tagPartsDesc.optional |@|
+      tagFormatDesc.optional |@|
       tagMessageFormatDesc.optional |@|
       preReleaseNameDesc.optional |@|
-      buildMetadataFormatDesc.optional |@|
+      formatsDesc.optional |@|
       patchesDesc.optional
     )(BranchConfigOpt.apply, BranchConfigOpt.unapply)
-}
-
-sealed trait TagParts
-object TagParts {
-  case object Version extends TagParts
-  //case object VersionPreRelease extends TagParts
-  case object VersionBuildMetadata extends TagParts
-  //case object VersionPreReleaseBuildMetadata extends TagParts
-
-  def apply(tagParts: String): TagParts = {
-    tagParts match {
-      case "Version" => Version
-      //case "VersionPreRelease" => VersionPreRelease
-      case "VersionBuildMetadata" => VersionBuildMetadata
-      //case "VersionPreReleaseBuildMetadata" => VersionPreReleaseBuildMetadata
-    }
-  }
-
-  def unapply(arg: TagParts): Option[String] = Some(arg.toString)
 }
 
 case class PatchConfig(name: String, filePatterns: List[String], find: String, replace: String)
@@ -92,14 +80,14 @@ object PatchConfig {
     )(PatchConfig.apply, PatchConfig.unapply)
 }
 
-case class AppConfig(defaults: BranchConfig, branches: List[BranchConfigOpt], patches: List[PatchConfig], formats: List[String])
+case class AppConfig(defaults: BranchConfig, branches: List[BranchConfigOpt], patches: List[PatchConfig], formats: List[Format])
 
 object AppConfig {
   val appConfigDesc = (
       nested("defaults")(BranchConfig.branchConfigDesc) |@|
       nested("branches")(list(BranchConfig.branchConfigOptDesc)) |@|
       nested("patches")(list(PatchConfig.patchConfigDesc)) |@|
-      list(string("formats")).default(Nil)
+      nested("formats")(list(Format.formatDesc)).default(Nil)
     )(AppConfig.apply, AppConfig.unapply)
 
   def getBranchConfig(currentBranch: String): BranchConfig = {
@@ -113,13 +101,26 @@ object AppConfig {
         name = bc.name,
         prefix = bc.prefix.getOrElse(defaults.prefix),
         tag = bc.tag.getOrElse(defaults.tag),
-        tagParts = bc.tagParts.getOrElse(defaults.tagParts),
+        tagFormat = bc.tagFormat.getOrElse(defaults.tagFormat),
         tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
         preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
-        buildMetadataFormat = bc.buildMetadataFormat.getOrElse(defaults.buildMetadataFormat),
+        formats = mergeFormats(bc.formats.getOrElse(Nil), defaults.formats, appConfig.formats),
         patches = bc.patches.getOrElse(defaults.patches)
       )
     }.getOrElse(defaults)
+  }
+
+  def mergeFormats(branch: List[Format], defaults: List[Format], appConfigFormats: List[Format]): List[Format] = {
+    def update(startList: List[Format], overrides: List[Format]): List[Format] = {
+      val startMap = startList.map( it => (it.name, it)).toMap
+      val overridesMap = overrides.map( it => (it.name, it)).toMap
+      overridesMap.values.foldLeft(startMap)((a, n) => a.+((n.name, n))).values.toList
+    }
+    // Start with defaults
+    val v1 = update(appConfigFormats, defaults)
+    val v2 = update(v1, branch)
+    val v3 = update(v2, Formatter.builtInFormats)
+    v3
   }
 
   def getPatchConfigs(branchConfig: BranchConfig): List[PatchConfig] = {

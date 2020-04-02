@@ -37,7 +37,7 @@ class Main(git: Git.Service = Git.Live.git()) {
     val config = AppConfig.getBranchConfig(currentBranch)
     val nextVersionData = getNextVersion(git, config, currentBranch)
     val output = nextOpts.format.map { format =>
-      VariableReplacer(nextVersionData, config).replace(format)
+      Formatter(nextVersionData, config).format(format)
     }.getOrElse(formatTag(config, nextVersionData))
     println(output)
   }
@@ -48,7 +48,7 @@ class Main(git: Git.Service = Git.Live.git()) {
     val config = AppConfig.getBranchConfig(currentBranch)
     val nextVersion = getNextVersion(git, config, currentBranch)
     val tag = formatTag(config, nextVersion)
-    val tagMessage = VariableReplacer(nextVersion, config).replace(config.tagMessageFormat)
+    val tagMessage = Formatter(nextVersion, config).format(config.tagMessageFormat)
     if (config.tag && nextVersion.commitCount > 0) {
       git.tag(tag, tagMessage)
     }
@@ -60,7 +60,7 @@ class Main(git: Git.Service = Git.Live.git()) {
     val nextVersion = getNextVersion(git, config, currentBranch)
     AppConfig.getPatchConfigs(config).foreach { patch =>
       val regex = patch.find.r
-      val replacement = VariableReplacer(nextVersion, config).replace(patch.replace)
+      val replacement = Formatter(nextVersion, config).format(patch.replace)
       patch.filePatterns.foreach { filePattern =>
         File.currentWorkingDirectory.glob(filePattern, includePath = false).foreach { file =>
           println(s"patching: $file, replacement: $replacement")

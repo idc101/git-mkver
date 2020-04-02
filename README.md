@@ -2,16 +2,16 @@
 
 Helps version your software and patch version numbers into the build.
 
-For more information head to the [project site][https://git-mkver.github.com].
+For more information head to the [project site](https://idc101.github.io/git-mkver/).
 
 ## Features
 
 - Determine next version based on:
     - Last tagged commit
-    - [Conventional Commits][https://www.conventionalcommits.org/]
+    - [Conventional Commits](https://www.conventionalcommits.org/)
     - Branch names
     - Manual tagging
-- Next version conforms to [Semantic Versioning][https://semver.org/] scheme
+- Next version conforms to [Semantic Versioning](https://semver.org/) scheme
 - Patch the next version into the build:
     - Java
     - C#
@@ -33,7 +33,7 @@ version of the software if you publish now.
 
 ```bash
 $ git mkver next
-0.4.0
+v0.4.0
 ```
 
 ### Tagging

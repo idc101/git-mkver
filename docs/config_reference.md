@@ -9,12 +9,10 @@ The application uses the HOCON format. More details on the specification can be 
 ## mkver.conf
 
 ```hocon
-# d
 defaults {
   prefix: v
   tagMessageFormat: "release %ver - buildno: %bn"
   tagParts: VersionBuildMetadata
-  #minimumVersionIncrement: Major|Minor|Patch|PreRelease|None
   patches: [
     helm-chart
     csproj

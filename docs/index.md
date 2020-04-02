@@ -1,5 +1,3 @@
-Helps version your software and patch version numbers into the build.
-
 ## Features
 
 - Determine next version based on:
@@ -17,4 +15,6 @@ Helps version your software and patch version numbers into the build.
 All of this can be configured based on the branch name so release/master branches get different
 version numbers to develop or feature branches.
 
+## Getting started
 
+[Install]() the binary and then read through the usage. 

@@ -8,7 +8,7 @@ import zio.config.typesafe.TypeSafeConfigSource
 import zio.config.typesafe.TypeSafeConfigSource.fromHoconString
 import zio.{App, Has, ZEnv, ZIO, ZLayer, console}
 
-class ConfigSpec extends AnyFlatSpec with Matchers {
+class AppConfigSpec extends AnyFlatSpec with Matchers {
 
   "config" should "load" in {
     //val c = TypeSafeConfigSource.fromDefaultLoader

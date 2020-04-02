@@ -11,7 +11,7 @@ object VariableReplacer {
     }
   }
 
-  def apply(version: VersionData): VariableReplacer = {
+  def apply(version: VersionData, branchConfig: BranchConfig): VariableReplacer = {
     VariableReplacer(List(
       Variable("version", "%ver", s"${version.major}.${version.minor}.${version.patch}"),
       Variable("major", "%x", version.major.toString),
@@ -23,7 +23,9 @@ object VariableReplacer {
       Variable("day", "%dd", version.date.getDayOfMonth.formatted("00")),
       Variable("month", "%mm", version.date.getMonthValue.formatted("00")),
       Variable("year", "%yyyy", version.date.getYear.toString),
-      Variable("buildNo", "%bn", version.buildNo)
+      Variable("buildNo", "%bn", version.buildNo),
+      Variable("shouldTag", "%tag?", branchConfig.tag.toString),
+      Variable("prefix", "%pr", branchConfig.prefix.toString)
     ))
   }
 }

@@ -1,6 +1,5 @@
 package net.cardnell.mkver
 
-import java.io.{BufferedReader, InputStreamReader}
 import java.time.LocalDate
 
 case class VersionData(major: Int,
@@ -42,19 +41,14 @@ object VersionBumps {
 }
 
 object MkVer {
-  def getDescribeInfo(prefix: String): DescribeInfo = {
-    val describeResult = exec(s"git describe --long --match=$prefix*")
+  def getDescribeInfo(git: Git.Service, prefix: String): DescribeInfo = {
+    val describeResult = git.describe(prefix)
 
-    if (describeResult.exitCode != 0) {
-      // No tags yet, assume default version
-      DescribeInfo("v0.0.0", 1, exec("git rev-parse --short HEAD").stdout)
-    } else {
-      // what if it was a branch tag that contains "-"?
-      val describe = "^(.*)-(\\d+)-g([0-9a-f]{5,40})$".r
+    // what if it was a branch tag that contains "-"?
+    val describe = "^(.*)-(\\d+)-g([0-9a-f]{5,40})$".r
 
-      describeResult.stdout match {
-        case describe(tag, commitCount, hash) => DescribeInfo(tag, commitCount.toInt, hash)
-      }
+    describeResult match {
+      case describe(tag, commitCount, hash) => DescribeInfo(tag, commitCount.toInt, hash)
     }
   }
 
@@ -73,7 +67,7 @@ object MkVer {
   def formatTag(config: BranchConfig, versionData: VersionData): String = {
     val version = s"${config.prefix}${versionData.major}.${versionData.minor}.${versionData.patch}"
     val preRelease = "TODO"
-    val buildMetaData = VariableReplacer(versionData).replace(config.buildMetadataFormat)
+    val buildMetaData = VariableReplacer(versionData, config).replace(config.buildMetadataFormat)
     config.tagParts match {
       case TagParts.Version => version
       //case TagParts.VersionPreRelease => s"$version-$preRelease"
@@ -82,11 +76,11 @@ object MkVer {
     }
   }
 
-  def getNextVersion(config: BranchConfig, currentBranch: String): VersionData = {
-    val describeInfo = getDescribeInfo(config.prefix)
+  def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): VersionData = {
+    val describeInfo = getDescribeInfo(git, config.prefix)
     val lastVersion = getLastVersion(config.prefix, describeInfo.lastTag)
     // If no commits since last tag then there is no next version yet - make bumps = 0
-    val bumps = if (describeInfo.commitCount == 0) VersionBumps() else getVersionBumps(describeInfo.lastTag)
+    val bumps = if (describeInfo.commitCount == 0) VersionBumps() else getVersionBumps(git, describeInfo.lastTag)
     val nextVersion = lastVersion.bump(bumps)
     VersionData(
       major = nextVersion.major,
@@ -101,8 +95,8 @@ object MkVer {
     )
   }
 
-  def getVersionBumps(lastVersionTag: String): VersionBumps = {
-    val log = exec(s"git log $lastVersionTag..HEAD").stdout
+  def getVersionBumps(git: Git.Service, lastVersionTag: String): VersionBumps = {
+    val log = git.log(lastVersionTag)
 
     val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, VersionBumps())
     if (logBumps == VersionBumps()) {
@@ -115,6 +109,8 @@ object MkVer {
   def calcBumps(lines: List[String], bumps: VersionBumps): VersionBumps = {
     val breaking = "BREAKING CHANGE".r
     val major = "major(\\(.+\\))?:".r
+    val minor = "minor(\\(.+\\))?:".r
+    val patch = "patch(\\(.+\\))?:".r
     val feat = "feat(\\(.+\\))?:".r
     val fix = "fix(\\(.+\\))?:".r
     if (lines.isEmpty) {
@@ -126,9 +122,9 @@ object MkVer {
       } else if (line.startsWith("    ")) {
         if (major.findFirstIn(line).nonEmpty || breaking.findFirstIn(line).nonEmpty) {
           calcBumps(lines.tail, bumps.bumpMajor())
-        } else if (feat.findFirstIn(line).nonEmpty) {
+        } else if (minor.findFirstIn(line).nonEmpty || feat.findFirstIn(line).nonEmpty) {
           calcBumps(lines.tail, bumps.bumpMinor())
-        } else if (fix.findFirstIn(line).nonEmpty) {
+        } else if (patch.findFirstIn(line).nonEmpty || fix.findFirstIn(line).nonEmpty) {
           calcBumps(lines.tail, bumps.bumpPatch())
         } else {
           calcBumps(lines.tail, bumps)
@@ -137,34 +133,5 @@ object MkVer {
         calcBumps(lines.tail, bumps)
       }
     }
-  }
-
-  def getCurrentBranch(): String = {
-    if (sys.env.contains("BUILD_SOURCEBRANCH")) {
-      // Azure Devops Pipeline
-      sys.env("BUILD_SOURCEBRANCH").replace("refs/heads/", "")
-    } else {
-      // TODO better fallback if we in detached head mode like build systems do
-      exec("git rev-parse --abbrev-ref HEAD").stdout
-    }
-  }
-
-  def exec(command: String): ProcessResult = {
-    exec(command.split(" "))
-  }
-
-  def exec(commands: Array[String]): ProcessResult = {
-    val runtime = Runtime.getRuntime
-    val process = runtime.exec(commands)
-
-    process.waitFor()
-
-    val lineReader = new BufferedReader(new InputStreamReader(process.getInputStream))
-    val stdout = lineReader.lines().toArray.mkString(System.lineSeparator())
-
-    val errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream))
-    val stderr = errorReader.lines().toArray.mkString(System.lineSeparator())
-
-    ProcessResult(stdout, stderr, process.exitValue())
   }
 }

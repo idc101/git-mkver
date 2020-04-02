@@ -1,1 +1,4 @@
 theme: jekyll-theme-architect
+show_downloads: true
+github:
+  releases_url: https://github.com/idc101/git-mkver/releases

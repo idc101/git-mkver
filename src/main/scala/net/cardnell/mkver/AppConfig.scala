@@ -80,18 +80,17 @@ object PatchConfig {
     )(PatchConfig.apply, PatchConfig.unapply)
 }
 
-case class AppConfig(defaults: BranchConfig, branches: List[BranchConfigOpt], patches: List[PatchConfig], formats: List[Format])
+case class AppConfig(defaults: BranchConfig, branches: List[BranchConfigOpt], patches: List[PatchConfig])
 
 object AppConfig {
   val appConfigDesc = (
       nested("defaults")(BranchConfig.branchConfigDesc) |@|
       nested("branches")(list(BranchConfig.branchConfigOptDesc)) |@|
-      nested("patches")(list(PatchConfig.patchConfigDesc)) |@|
-      nested("formats")(list(Format.formatDesc)).default(Nil)
+      nested("patches")(list(PatchConfig.patchConfigDesc))
     )(AppConfig.apply, AppConfig.unapply)
 
-  def getBranchConfig(currentBranch: String): BranchConfig = {
-    val appConfig = getAppConfig()
+  def getBranchConfig(configFile: Option[String], currentBranch: String): BranchConfig = {
+    val appConfig = getAppConfig(configFile)
     val defaults = appConfig.defaults
 
     val branchConfig = appConfig.branches.find { bc => currentBranch.matches(bc.name) }
@@ -104,37 +103,46 @@ object AppConfig {
         tagFormat = bc.tagFormat.getOrElse(defaults.tagFormat),
         tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
         preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
-        formats = mergeFormats(bc.formats.getOrElse(Nil), defaults.formats, appConfig.formats),
+        formats = mergeFormats(bc.formats.getOrElse(Nil), defaults.formats),
         patches = bc.patches.getOrElse(defaults.patches)
       )
     }.getOrElse(defaults)
   }
 
-  def mergeFormats(branch: List[Format], defaults: List[Format], appConfigFormats: List[Format]): List[Format] = {
+  def mergeFormats(branch: List[Format], defaults: List[Format]): List[Format] = {
     def update(startList: List[Format], overrides: List[Format]): List[Format] = {
       val startMap = startList.map( it => (it.name, it)).toMap
       val overridesMap = overrides.map( it => (it.name, it)).toMap
       overridesMap.values.foldLeft(startMap)((a, n) => a.+((n.name, n))).values.toList
     }
     // Start with defaults
-    val v1 = update(appConfigFormats, defaults)
-    val v2 = update(v1, branch)
-    val v3 = update(v2, Formatter.builtInFormats)
-    v3
+    val v1 = update(defaults, branch)
+    val v2 = update(v1, Formatter.builtInFormats)
+    v2
   }
 
-  def getPatchConfigs(branchConfig: BranchConfig): List[PatchConfig] = {
-    val allPatchConfigs = getAppConfig().patches.map(it => (it.name, it)).toMap
+  def getPatchConfigs(configFile: Option[String], branchConfig: BranchConfig): List[PatchConfig] = {
+    val allPatchConfigs = getAppConfig(configFile).patches.map(it => (it.name, it)).toMap
     branchConfig.patches.map( c => allPatchConfigs.get(c).orElse(sys.error(s"Can't find patch config named $c")).get)
   }
 
-  def getAppConfig(): AppConfig = {
-    val hocon = if (File("mkver.conf").exists) {
-      TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File("mkver.conf")))
+  def getAppConfig(configFile: Option[String]): AppConfig = {
+    val file = if (configFile.exists(File(_).exists)) {
+      configFile
+    } else if (sys.env.get("GITMKVER_CONFIG").exists(File(_).exists)) {
+      sys.env.get("GITMKVER_CONFIG")
+    } else if (File("mkver.conf").exists) {
+      Some("mkver.conf")
+    } else {
+      None
+    }
+
+    val hocon = file.map { f =>
+      TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(f)))
       // TODO Use this when in ZIO land
       // TypeSafeConfigSource.fromHoconFile(new java.io.File("mkver.conf"))
-    } else {
-      TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("application.conf"))
+    }.getOrElse {
+      TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
     }
 
     val config =

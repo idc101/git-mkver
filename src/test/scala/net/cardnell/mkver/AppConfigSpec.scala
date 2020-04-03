@@ -12,7 +12,7 @@ class AppConfigSpec extends AnyFlatSpec with Matchers {
 
   "config" should "load" in {
     //val c = TypeSafeConfigSource.fromDefaultLoader
-    val c = TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("application.conf"))
+    val c = TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
     println(c)
     val config =
       c match {

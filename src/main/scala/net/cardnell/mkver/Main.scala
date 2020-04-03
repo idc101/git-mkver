@@ -2,8 +2,7 @@ package net.cardnell.mkver
 
 import better.files._
 import net.cardnell.mkver.MkVer._
-
-import net.cardnell.mkver.CommandLineArgs.{CiOpts, NextOpts, PatchOpts, TagOpts}
+import net.cardnell.mkver.CommandLineArgs.{CommandLineOpts, NextOpts, PatchOpts, TagOpts}
 
 case class ProcessResult(stdout: String, stderr: String, exitCode: Int)
 
@@ -19,22 +18,27 @@ class Main(git: Git.Service = Git.Live.git()) {
       case Left(help) =>
         System.err.println(help)
         sys.exit(1)
-      case Right(nextOps@NextOpts(_)) =>
-        runNext(nextOps)
-      case Right(TagOpts(_)) =>
-        runTag()
-      case Right(PatchOpts(_)) =>
-        runPatch()
-      case Right(CiOpts(_)) =>
-        runTag()
-        runPatch()
+      case Right(opts) =>
+        run(opts)
     }
   }
 
-  def runNext(nextOpts: NextOpts): Unit = {
+  def run(opts: CommandLineOpts): Unit = {
     git.checkGitRepo()
     val currentBranch = git.currentBranch()
-    val config = AppConfig.getBranchConfig(currentBranch)
+    val config = AppConfig.getBranchConfig(opts.configFile, currentBranch)
+    opts.p match {
+      case nextOps@NextOpts(_) =>
+        runNext(nextOps, config, currentBranch)
+      case TagOpts(_) =>
+        runTag(config, currentBranch)
+      case PatchOpts(_) =>
+        val patchConfigs = AppConfig.getPatchConfigs(opts.configFile, config)
+        runPatch(config, currentBranch, patchConfigs)
+    }
+  }
+
+  def runNext(nextOpts: NextOpts, config: BranchConfig, currentBranch: String): Unit = {
     val nextVersionData = getNextVersion(git, config, currentBranch)
     val output = nextOpts.format.map { format =>
       Formatter(nextVersionData, config).format(format)
@@ -42,10 +46,7 @@ class Main(git: Git.Service = Git.Live.git()) {
     println(output)
   }
 
-  def runTag(): Unit = {
-    git.checkGitRepo()
-    val currentBranch = git.currentBranch()
-    val config = AppConfig.getBranchConfig(currentBranch)
+  def runTag(config: BranchConfig, currentBranch: String): Unit = {
     val nextVersion = getNextVersion(git, config, currentBranch)
     val tag = formatTag(config, nextVersion)
     val tagMessage = Formatter(nextVersion, config).format(config.tagMessageFormat)
@@ -54,11 +55,9 @@ class Main(git: Git.Service = Git.Live.git()) {
     }
   }
 
-  def runPatch(): Unit = {
-    val currentBranch = git.currentBranch()
-    val config = AppConfig.getBranchConfig(currentBranch)
+  def runPatch(config: BranchConfig, currentBranch: String, patchConfigs: List[PatchConfig]): Unit = {
     val nextVersion = getNextVersion(git, config, currentBranch)
-    AppConfig.getPatchConfigs(config).foreach { patch =>
+    patchConfigs.foreach { patch =>
       val regex = patch.find.r
       val replacement = Formatter(nextVersion, config).format(patch.replace)
       patch.filePatterns.foreach { filePattern =>

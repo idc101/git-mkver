@@ -13,13 +13,13 @@ class FormatterSpec extends AnyFlatSpec with Matchers {
       Format("a", "1"),
       Format("a3", "3"),
       Format("b", "2"),
-      Format("c", "%a.%b"),
-      Format("r1", "%r2")
+      Format("c", "{a}.{b}"),
+      Format("r1", "{r2}")
     ))
     formatter.format("hello") should be("hello")
-    formatter.format("%a") should be("1")
-    formatter.format("%a-%c") should be("1-1.2")
-    formatter.format("%r1") should be("%r2")
-    formatter.format("%a3") should be("3")
+    formatter.format("{a}") should be("1")
+    formatter.format("{a}-{c}") should be("1-1.2")
+    formatter.format("{r1}") should be("{r2}")
+    formatter.format("{a3}") should be("3")
   }
 }

@@ -13,8 +13,8 @@ import zio.config.typesafe.{TypeSafeConfigSource, TypesafeConfig}
 case class Format(name: String, format: String)
 object Format {
   val formatDesc = (
-    string("name").describe("Name of format. Do not prefix with %. e.g. 'major-minor'") |@|
-    string("format").describe("Format string for this format. Can include other formats. e.g. '%x.%y'")
+    string("name").describe("Name of format. e.g. 'MajorMinor'") |@|
+    string("format").describe("Format string for this format. Can include other formats. e.g. '{x}.{y}'")
     )(Format.apply, Format.unapply)
 }
 
@@ -51,7 +51,7 @@ object BranchConfig {
       prefixDesc.default("v") |@|
       tagDesc.default(false) |@|
       tagFormatDesc.default("version") |@|
-      tagMessageFormatDesc.default("release %ver") |@|
+      tagMessageFormatDesc.default("release {Version}") |@|
       preReleaseNameDesc.default("rc.") |@|
       formatsDesc.default(Nil) |@|
       patchesDesc.default(Nil)
@@ -125,7 +125,7 @@ object AppConfig {
 
   def getPatchConfigs(branchConfig: BranchConfig): List[PatchConfig] = {
     val allPatchConfigs = getAppConfig().patches.map(it => (it.name, it)).toMap
-    branchConfig.patches.map(allPatchConfigs.get(_).orElse(sys.error("Can't find patch config")).get)
+    branchConfig.patches.map( c => allPatchConfigs.get(c).orElse(sys.error(s"Can't find patch config named $c")).get)
   }
 
   def getAppConfig(): AppConfig = {

@@ -70,7 +70,7 @@ object MkVer {
       System.err.println(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}")
       sys.exit(1)
     }
-    Formatter(versionData, config).format(s"${config.prefix}%${config.tagFormat}")
+    Formatter(versionData, config).format(s"${config.prefix}{${config.tagFormat}}")
   }
 
   def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): VersionData = {

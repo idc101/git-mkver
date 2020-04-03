@@ -26,7 +26,9 @@ object Git {
       def currentBranch(): String = {
         if (sys.env.contains("BUILD_SOURCEBRANCH")) {
           // Azure Devops Pipeline
-          sys.env("BUILD_SOURCEBRANCH").replace("refs/heads/", "")
+          sys.env("BUILD_SOURCEBRANCH")
+            .replace("refs/heads/", "")
+            .replace("refs/", "")
         } else {
           // TODO better fallback if we in detached head mode like build systems do
           exec("git rev-parse --abbrev-ref HEAD", cwd).stdout

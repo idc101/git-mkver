@@ -5,7 +5,11 @@ branches. This is required as different software often have different restrictio
 
 For example git is happy with the SemVer standard for tagging but docker does not support the `+` symbol in docker tags.
 
-All format strings start with a `%`. They are recursively replaced so that one may refer to another.
+All replacements in format strings start with `{` and end with `}`. They are recursively replaced so that one may refer to another.
+
+## Examples
+
+
 
 ## Built-in Formats 
 

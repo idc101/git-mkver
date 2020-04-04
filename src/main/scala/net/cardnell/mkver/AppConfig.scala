@@ -113,7 +113,7 @@ object AppConfig {
     def update(startList: List[Format], overrides: List[Format]): List[Format] = {
       val startMap = startList.map( it => (it.name, it)).toMap
       val overridesMap = overrides.map( it => (it.name, it)).toMap
-      overridesMap.values.foldLeft(startMap)((a, n) => a.+((n.name, n))).values.toList
+      overridesMap.values.foldLeft(startMap)((a, n) => a.+((n.name, n))).values.toList.sortBy(_.name)
     }
     // Start with defaults
     val v1 = update(defaults, branch)

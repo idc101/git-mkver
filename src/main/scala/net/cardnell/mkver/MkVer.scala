@@ -52,44 +52,44 @@ object MkVer {
     }
   }
 
-  def getLastVersion(prefix: String, lastVersionTag: String): Version = {
+  def getLastVersion(prefix: String, lastVersionTag: String): Either[MkVerError, Version] = {
     val version = ("^" + prefix + "(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").r
 
     lastVersionTag match {
-      case version(major, minor, patch, prerelease, buildmetadata) => Version(major.toInt, minor.toInt, patch.toInt, Option(prerelease), Option(buildmetadata))
+      case version(major, minor, patch, prerelease, buildmetadata) =>
+        Right(Version(major.toInt, minor.toInt, patch.toInt, Option(prerelease), Option(buildmetadata)))
       case _ =>
-        System.err.println(s"warning: unable to parse last tag. ($lastVersionTag) doesn't match a SemVer pattern")
-        System.exit(1)
-        Version(0, 0, 0, None, None)
+        Left(MkVerError(s"fatal: unable to parse last tag. ($lastVersionTag) doesn't match a SemVer pattern"))
     }
   }
 
-  def formatTag(config: BranchConfig, versionData: VersionData): String = {
+  def formatTag(config: BranchConfig, versionData: VersionData): Either[MkVerError, String] = {
     val allowedFormats = Formatter.builtInFormats.map(_.name)
     if (!allowedFormats.contains(config.tagFormat)) {
-      System.err.println(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}")
-      sys.exit(1)
+      Left(MkVerError(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
+    } else {
+      Right(Formatter(versionData, config).format(s"${config.prefix}{${config.tagFormat}}"))
     }
-    Formatter(versionData, config).format(s"${config.prefix}{${config.tagFormat}}")
   }
 
-  def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): VersionData = {
+  def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): Either[MkVerError, VersionData] = {
     val describeInfo = getDescribeInfo(git, config.prefix)
-    val lastVersion = getLastVersion(config.prefix, describeInfo.lastTag)
-    // If no commits since last tag then there is no next version yet - make bumps = 0
-    val bumps = if (describeInfo.commitCount == 0) VersionBumps() else getVersionBumps(git, describeInfo.lastTag)
-    val nextVersion = lastVersion.bump(bumps)
-    VersionData(
-      major = nextVersion.major,
-      minor = nextVersion.minor,
-      patch = nextVersion.patch,
-      commitCount = describeInfo.commitCount,
-      branch = currentBranch,
-      commitHashShort = describeInfo.commitHash,
-      commitHashFull = "TODO",
-      date = LocalDate.now(),
-      buildNo = sys.env.getOrElse("BUILD_BUILDNUMBER", "TODO")
-    )
+    getLastVersion(config.prefix, describeInfo.lastTag).map { lastVersion =>
+      // If no commits since last tag then there is no next version yet - make bumps = 0
+      val bumps = if (describeInfo.commitCount == 0) VersionBumps() else getVersionBumps(git, describeInfo.lastTag)
+      val nextVersion = lastVersion.bump(bumps)
+      VersionData(
+        major = nextVersion.major,
+        minor = nextVersion.minor,
+        patch = nextVersion.patch,
+        commitCount = describeInfo.commitCount,
+        branch = currentBranch,
+        commitHashShort = describeInfo.commitHash,
+        commitHashFull = "TODO",
+        date = LocalDate.now(),
+        buildNo = sys.env.getOrElse("BUILD_BUILDNUMBER", "TODO")
+      )
+    }
   }
 
   def getVersionBumps(git: Git.Service, lastVersionTag: String): VersionBumps = {

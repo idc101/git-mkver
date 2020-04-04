@@ -1,5 +1,7 @@
 package net.cardnell.mkver
 
+import java.time.LocalDate
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import MkVer._
@@ -19,7 +21,7 @@ class MkVerSpec extends AnyFlatSpec with Matchers {
     override def log(lastVersionTag: String): String = logV
     override def describe(prefix: String): String = describeV
     override def tag(tag: String, tagMessage: String): Unit = tagV
-    override def checkGitRepo(): Unit = ()
+    override def checkGitRepo(): Either[MkVerError, Unit] = Right(())
   }
 
   "getDescribeInfo" should "parse correctly" in {
@@ -44,13 +46,19 @@ class MkVerSpec extends AnyFlatSpec with Matchers {
   }
 
   "getLastVersion" should "parse correctly" in {
-    getLastVersion("v", "v10.5.3") should be(Version(10, 5, 3, None, None))
-    getLastVersion("v", "v10.5.3-pre") should be(Version(10, 5, 3, Some("pre"), None))
-    getLastVersion("v", "v10.5.3-pre+build") should be(Version(10, 5, 3, Some("pre"), Some("build")))
-    getLastVersion("v", "v10.5.3+build") should be(Version(10, 5, 3, None, Some("build")))
-    getLastVersion("v", "v10.5.3-pre-3+build") should be(Version(10, 5, 3, Some("pre-3"), Some("build")))
-    //getLastVersion("v", "v10.5.3-pre-3+build+1") should be(Version(10, 5, 3, Some("pre-3"), Some("build+1")))
-    getLastVersion("v", "v10.5.3-pre-3+build-1") should be(Version(10, 5, 3, Some("pre-3"), Some("build-1")))
-    getLastVersion("v", "v10.5.3+build-1") should be(Version(10, 5, 3, None, Some("build-1")))
+    getLastVersion("v", "v10.5.3") should be(Right(Version(10, 5, 3, None, None)))
+    getLastVersion("v", "v10.5.3-pre") should be(Right(Version(10, 5, 3, Some("pre"), None)))
+    getLastVersion("v", "v10.5.3-pre+build") should be(Right(Version(10, 5, 3, Some("pre"), Some("build"))))
+    getLastVersion("v", "v10.5.3+build") should be(Right(Version(10, 5, 3, None, Some("build"))))
+    getLastVersion("v", "v10.5.3-pre-3+build") should be(Right(Version(10, 5, 3, Some("pre-3"), Some("build"))))
+    //getLastVersion("v", "v10.5.3-pre-3+build+1") should be(Right(Version(10, 5, 3, Some("pre-3"), Some("build+1"))))
+    getLastVersion("v", "v10.5.3-pre-3+build-1") should be(Right(Version(10, 5, 3, Some("pre-3"), Some("build-1"))))
+    getLastVersion("v", "v10.5.3+build-1") should be(Right(Version(10, 5, 3, None, Some("build-1"))))
+  }
+
+  "formatTag" should "format a tag" in {
+    val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now(), "56")
+    val branchConfig = BranchConfig(".*", "v", true, "Version", "release {Version}", "RC", List(Format("Version", "{x}.{y}.{z}")), Nil)
+    formatTag(branchConfig, versionData) should be(Right("v1.2.3"))
   }
 }

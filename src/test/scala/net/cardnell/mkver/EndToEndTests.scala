@@ -5,14 +5,13 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import ProcessUtils._
 
-// TODO - Capture output so we can test it properly!!
 
 class EndToEndTests extends AnyFlatSpec with Matchers {
   "no tags" should "return version 0.1.0" in {
     File.usingTemporaryDirectory("git-mkver") { tempDir =>
       init(tempDir)
       fix("code1.py", tempDir)
-      new Main(Git.Live.git(Some(tempDir))).mainImpl(Array("next"))
+      new Main(Git.Live.git(Some(tempDir))).mainImpl(Array("next")) should be(Right("v0.1.0"))
     }
   }
 
@@ -22,7 +21,7 @@ class EndToEndTests extends AnyFlatSpec with Matchers {
       fix("code1.py", tempDir)
       new Main(Git.Live.git(Some(tempDir))).mainImpl(Array("tag"))
       fix("code2.py", tempDir)
-      new Main(Git.Live.git(Some(tempDir))).mainImpl(Array("next"))
+      new Main(Git.Live.git(Some(tempDir))).mainImpl(Array("next")) should be(Right("v0.1.1"))
     }
   }
 

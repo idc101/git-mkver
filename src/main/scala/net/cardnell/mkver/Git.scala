@@ -16,7 +16,7 @@ object Git {
     def log(lastVersionTag: String): String
     def describe(prefix: String): String
     def tag(tag: String, tagMessage: String): Unit
-    def checkGitRepo(): Unit
+    def checkGitRepo(): Either[MkVerError, Unit]
   }
 
   trait Live extends Git {
@@ -55,11 +55,12 @@ object Git {
         exec(Array("git", "tag", "-a", "-m", tagMessage, tag), cwd)
       }
 
-      def checkGitRepo(): Unit = {
+      def checkGitRepo(): Either[MkVerError, Unit] = {
         val output = exec(s"git --no-pager show", cwd)
         if (output.exitCode != 0) {
-          System.err.println(output.stderr)
-          System.exit(output.exitCode)
+          Left(MkVerError(output.stderr))
+        } else {
+          Right(())
         }
       }
     }

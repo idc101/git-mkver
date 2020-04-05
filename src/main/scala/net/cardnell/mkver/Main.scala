@@ -69,7 +69,7 @@ class Main(git: Git.Service = Git.Live.git()) {
         val regex = patch.find.r
         val replacement = Formatter(nextVersion, config).format(patch.replace)
         patch.filePatterns.foreach { filePattern =>
-          File.currentWorkingDirectory.glob(filePattern, includePath = false).foreach { file =>
+          File.currentWorkingDirectory.glob(filePattern, includePath = true).foreach { file =>
             println(s"patching: $file, replacement: $replacement")
             val newContent = regex.replaceAllIn(file.contentAsString, replacement)
             file.overwrite(newContent)

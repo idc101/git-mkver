@@ -10,7 +10,6 @@ object CommandLineArgs {
 
   val configFile: Opts[Option[String]] = Opts.option[String]("config", short = "c", metavar = "file", help = "Config file to load").orNone
   val format: Opts[Option[String]] = Opts.option[String]("format", short = "f", metavar = "string", help = "Format string for the version number").orNone
-  //val port = Opts.env[Int]("PORT", help = "The port to run on.")
   val nextOptions: Opts[NextOpts] = format.map(NextOpts.apply)
   val tagOptions: Opts[TagOpts] = format.map(TagOpts.apply)
   val patchOptions: Opts[PatchOpts] = format.map(PatchOpts.apply)

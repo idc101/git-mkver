@@ -8,6 +8,11 @@ $ git mkver next
 0.4.0
 ```
 
+## Common arguments
+
+All commands take a `-c <FILE>` or `--config <FILE>` option to set the config file to read. More details on the
+[Config Reference](config_reference) page.
+
 ## Tagging
 
 If you would like to publish a version mkver can tag the current commit.

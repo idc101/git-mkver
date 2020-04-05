@@ -12,6 +12,10 @@ class VersionSpec extends AnyFlatSpec with Matchers {
     Version(1,0,0).bump(VersionBumps(false, true, true, 0)) should be(Version(1,1,0))
     Version(1,0,0).bump(VersionBumps(false, false, true, 0)) should be(Version(1,0,1))
     Version(1,0,0).bump(VersionBumps(false, false, false, 0)) should be(Version(1,0,0))
+    Version(1,2,3).bump(VersionBumps(true, true, true, 0)) should be(Version(2,0,0))
+    Version(1,2,3).bump(VersionBumps(false, true, true, 0)) should be(Version(1,3,0))
+    Version(1,2,3).bump(VersionBumps(false, false, true, 0)) should be(Version(1,2,4))
+    Version(1,2,3).bump(VersionBumps(false, false, false, 0)) should be(Version(1,2,3))
   }
 }
 
@@ -61,4 +65,10 @@ class MkVerSpec extends AnyFlatSpec with Matchers {
     val branchConfig = BranchConfig(".*", "v", true, "Version", "release {Version}", "RC", List(Format("Version", "{x}.{y}.{z}")), Nil)
     formatTag(branchConfig, versionData) should be(Right("v1.2.3"))
   }
+
+//  "getNextVersion" should "return next version data" in {
+//    val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now(), "56")
+//    val branchConfig = BranchConfig(".*", "v", true, "Version", "release {Version}", "RC", List(Format("Version", "{x}.{y}.{z}")), Nil)
+//    formatTag(branchConfig, versionData) should be(Right("v1.2.3"))
+//  }
 }

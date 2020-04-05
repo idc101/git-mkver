@@ -19,9 +19,9 @@ case class Version(major: Int = 0,
                    buildmetadata: Option[String] = None) {
   def bump(bumps: VersionBumps): Version = {
     bumps match {
-      case VersionBumps(true, _, _, _) => this.copy(major = this.major + 1)
-      case VersionBumps(false, true, _, _) => this.copy(minor = this.minor + 1)
-      case VersionBumps(false, false, true, _) => this.copy(patch = this.patch + 1)
+      case VersionBumps(true, _, _, _) => Version(this.major + 1, 0, 0)
+      case VersionBumps(false, true, _, _) => Version(this.major, this.minor + 1, 0)
+      case VersionBumps(false, false, true, _) => Version(this.major, this.minor, this.patch + 1)
       case _ => this
     }
   }

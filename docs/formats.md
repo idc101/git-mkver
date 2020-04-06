@@ -11,10 +11,25 @@ All replacements in format strings start with `{` and end with `}`. They are rec
 
 
 
+## SemVer Formats
+
+The following built in formats conform to the SemVer spec. They cannot be overriden.
+
+| Format Token  | Substitution  |
+| ------------- | ------------- |
+| `Version` | `{x}.{y}.{z}` |
+| `VersionPreRelease` | `{Version}-{PreRelease}` |
+| `VersionBuildMetaData` | `{Version}+{BuildMetaData}` |
+| `VersionPreReleaseBuildMetaData` | `{Version}-{PreRelease}+{BuildMetaData}` |
+
+
 ## Built-in Formats 
 
 | Format Token  | Substitution  |
 | ------------- | ------------- |
+| `Next` | Full Semantic Version |
+| `Tag` | Full Semantic Version as a tag (includes the prefix) |
+| `TagMessage` | Tag Message |
 | `x` | Version major number |
 | `z` | Version patch number |
 | `y` | Version minor number |
@@ -22,8 +37,11 @@ All replacements in format strings start with `{` and end with `}`. They are rec
 | `sh` | Short Hash |
 | `hash` | Full Hash |
 | `dd` | Day |
-| `mm` | MonthValue, |
-| `yyyy` | Year, |
+| `mm` | Month |
+| `yyyy` | Year |
 | `bn` | Build No from build system |
-| `tag` | Full tag |
+| `tag?` | `true` if this branch is allowed to be tagged; `false` otherwise |
 | `pr` | Tag prefix |
+| `env.XXXX` | Environment Variables |
+
+### Environment Variables

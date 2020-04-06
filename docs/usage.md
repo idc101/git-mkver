@@ -33,3 +33,11 @@ pre-defined.
 ```bash
 $ git mkver patch
 ```
+
+## Info
+
+If you want to see all variables or configuration you can use the `info` command:
+
+```bash
+$ git mkver info
+```

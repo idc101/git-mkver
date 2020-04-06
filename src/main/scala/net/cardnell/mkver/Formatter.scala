@@ -6,11 +6,7 @@ object Formatter {
     Format("VersionPreRelease", "{Version}-{PreRelease}"),
     Format("VersionBuildMetaData", "{Version}+{BuildMetaData}"),
     Format("VersionPreReleaseBuildMetaData", "{Version}-{PreRelease}+{BuildMetaData}"),
-  )
-
-  val defaultFormats = List(
-    Format("PreRelease", "rc-{PreReleaseName}"),
-    Format("BuildMetaData", "{br}.{sh}"),
+    Format("PreRelease", "{PreReleaseName}{PreReleaseNumber}"),
   )
 
   case class Formatter(formats: List[Format]) {
@@ -35,6 +31,11 @@ object Formatter {
 
   def apply(version: VersionData, branchConfig: BranchConfig): Formatter = {
     Formatter(List(
+      Format("Next", "{" + branchConfig.tagFormat + "}"),
+      Format("Tag", "{pr}{" + branchConfig.tagFormat + "}"),
+      Format("TagMessage", "{" + branchConfig.tagMessageFormat + "}"),
+      Format("PreReleaseName", branchConfig.preReleaseName),
+      Format("PreReleaseNumber", ""),
       Format("x", version.major.toString),
       Format("y", version.minor.toString),
       Format("z", version.patch.toString),
@@ -47,7 +48,7 @@ object Formatter {
       Format("bn", version.buildNo),
       Format("tag?", branchConfig.tag.toString),
       Format("pr", branchConfig.prefix.toString)
-    ) ++ branchConfig.formats
+    ) ++ AppConfig.mergeFormats(branchConfig.formats, builtInFormats)
       ++ envVariables()
       ++ azureDevOpsVariables())
   }
@@ -72,6 +73,7 @@ object Formatter {
     branchName
       .replace("refs/heads/", "")
       .replace("refs/", "")
-      .replace("/", "_")
+      .replace("/", "-")
+      .replace("_", "-")
   }
 }

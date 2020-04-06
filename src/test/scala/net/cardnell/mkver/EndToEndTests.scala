@@ -10,7 +10,7 @@ class EndToEndTests extends AnyFlatSpec with Matchers {
     File.usingTemporaryDirectory("git-mkver") { tempDir =>
       init(tempDir)
       fix("code1.py", tempDir)
-      run(tempDir, "next") should be(Right("v0.1.0"))
+      run(tempDir, "next") should be(Right("0.1.0"))
     }
   }
 
@@ -20,7 +20,7 @@ class EndToEndTests extends AnyFlatSpec with Matchers {
       fix("code1.py", tempDir)
       run(tempDir, "tag")
       fix("code2.py", tempDir)
-      run(tempDir, "next") should be(Right("v0.1.1"))
+      run(tempDir, "next") should be(Right("0.1.1"))
       println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
     }
   }
@@ -35,7 +35,7 @@ class EndToEndTests extends AnyFlatSpec with Matchers {
       checkout("master", tempDir)
       major("code3.py", tempDir)
       merge("feature/f1", tempDir)
-      run(tempDir, "next") should be(Right("v1.0.0"))
+      run(tempDir, "next") should be(Right("1.0.0"))
       println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
     }
   }
@@ -50,7 +50,7 @@ class EndToEndTests extends AnyFlatSpec with Matchers {
       checkout("master", tempDir)
       feat("code3.py", tempDir)
       merge("feature/f1", tempDir)
-      run(tempDir, "next") should be(Right("v1.0.0"))
+      run(tempDir, "next") should be(Right("1.0.0"))
       println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
     }
   }
@@ -71,7 +71,7 @@ class EndToEndTests extends AnyFlatSpec with Matchers {
 
       merge("feature/f1", tempDir)
       merge("feature/f2", tempDir)
-      run(tempDir, "next") should be(Right("v1.0.0"))
+      run(tempDir, "next") should be(Right("1.0.0"))
       println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
     }
   }

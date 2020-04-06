@@ -2,7 +2,7 @@ package net.cardnell.mkver
 
 import better.files._
 import net.cardnell.mkver.MkVer._
-import net.cardnell.mkver.CommandLineArgs.{CommandLineOpts, NextOpts, PatchOpts, TagOpts}
+import net.cardnell.mkver.CommandLineArgs.{CommandLineOpts, InfoOpts, NextOpts, PatchOpts, TagOpts}
 
 case class ProcessResult(stdout: String, stderr: String, exitCode: Int)
 
@@ -29,15 +29,19 @@ class Main(git: Git.Service = Git.Live.git()) {
   def run(opts: CommandLineOpts): Either[MkVerError, String] = {
     git.checkGitRepo().flatMap { _ =>
       val currentBranch = git.currentBranch()
-      val config = AppConfig.getBranchConfig(opts.configFile, currentBranch)
-      opts.p match {
-        case nextOps@NextOpts(_) =>
-          runNext(nextOps, config, currentBranch)
-        case TagOpts(_) =>
-          runTag(config, currentBranch).map(_ => "")
-        case PatchOpts(_) =>
-          val patchConfigs = AppConfig.getPatchConfigs(opts.configFile, config)
-          runPatch(config, currentBranch, patchConfigs).map(_ => "")
+      AppConfig.getBranchConfig(opts.configFile, currentBranch).flatMap { config =>
+        opts.p match {
+          case nextOps@NextOpts(_, _) =>
+            runNext(nextOps, config, currentBranch)
+          case TagOpts(_) =>
+            runTag(config, currentBranch).map(_ => "")
+          case PatchOpts(_) =>
+            AppConfig.getPatchConfigs(opts.configFile, config).flatMap { patchConfigs =>
+              runPatch(config, currentBranch, patchConfigs).map(_ => "")
+            }
+          case InfoOpts(includeBranchConfig) =>
+            runInfo(config, currentBranch, includeBranchConfig)
+        }
       }
     }
   }
@@ -47,7 +51,7 @@ class Main(git: Git.Service = Git.Live.git()) {
       nextOpts.format.map { format =>
         Right(Formatter(nextVersion, config).format(format))
       }.getOrElse {
-        formatTag(config, nextVersion)
+        formatTag(config, nextVersion, nextOpts.prefix)
       }
     }
   }
@@ -75,6 +79,22 @@ class Main(git: Git.Service = Git.Live.git()) {
             file.overwrite(newContent)
           }
         }
+      }
+    }
+  }
+
+  def runInfo(config: BranchConfig, currentBranch: String, includeBranchConfig: Boolean): Either[MkVerError, String] = {
+    getNextVersion(git, config, currentBranch).map { nextVersion =>
+      val formatter = Formatter(nextVersion, config)
+      val formats = formatter.formats.map { format =>
+        val result = formatter.format(format.format)
+        s"${format.name}=$result"
+      }.mkString(System.lineSeparator())
+
+      if (includeBranchConfig) {
+        config.toString + System.lineSeparator() + System.lineSeparator() + formats
+      } else {
+        formats
       }
     }
   }

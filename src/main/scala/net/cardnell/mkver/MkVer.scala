@@ -63,12 +63,16 @@ object MkVer {
     }
   }
 
-  def formatTag(config: BranchConfig, versionData: VersionData): Either[MkVerError, String] = {
+  def formatTag(config: BranchConfig, versionData: VersionData, formatAsTag: Boolean = true): Either[MkVerError, String] = {
     val allowedFormats = Formatter.builtInFormats.map(_.name)
     if (!allowedFormats.contains(config.tagFormat)) {
       Left(MkVerError(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
     } else {
-      Right(Formatter(versionData, config).format(s"${config.prefix}{${config.tagFormat}}"))
+      if (formatAsTag) {
+        Right(Formatter(versionData, config).format("{Tag}"))
+      } else {
+        Right(Formatter(versionData, config).format("{Next}"))
+      }
     }
   }
 

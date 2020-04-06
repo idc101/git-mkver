@@ -26,7 +26,7 @@ class FormatterSpec extends AnyFlatSpec with Matchers {
   }
 
   "branchNameToVariable" should "replace variables" in {
-    Formatter.branchNameToVariable("refs/heads/feat/f1") should be("feat_f1")
+    Formatter.branchNameToVariable("refs/heads/feat/f1") should be("feat-f1")
   }
 
   "Formatter" should "default list" in {
@@ -37,6 +37,6 @@ class FormatterSpec extends AnyFlatSpec with Matchers {
     formatter.format("{x}") should be("1")
     formatter.format("{y}") should be("2")
     formatter.format("{z}") should be("3")
-    formatter.format("{br}") should be("feature_f1")
+    formatter.format("{br}") should be("feature-f1")
   }
 }

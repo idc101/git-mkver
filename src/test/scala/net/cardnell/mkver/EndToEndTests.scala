@@ -1,126 +1,151 @@
 package net.cardnell.mkver
 
-import better.files.File
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import zio.blocking.Blocking
+import zio.test.Assertion._
+import zio.test._
+import zio.{RIO, ZIO}
 
+object EndToEndTests {
+  val suite1 = suite("trunk based semver development")(
+    testM("no tags should return version 0.1.0") {
+      val result = test { tempDir =>
+        for {
+          _ <- fix("code1.py", tempDir)
+          run <- run(tempDir, "next")
+        } yield run
+      }
+      assertM(result)(equalTo("0.1.0"))
+    },
+    testM("master advances correctly and should return version 0.1.1") {
+      val result = test { tempDir =>
+        for {
+          _ <- fix("code1.py", tempDir)
+          _ <- run(tempDir, "tag")
+          _ <- fix("code2.py", tempDir)
+          //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
+          run <- run(tempDir, "next")
+        } yield run
+      }
+      assertM(result)(equalTo("0.1.1"))
+    },
+    testM("feature branch (+minor) and master (+major) both advance version and should return version 1.0.0") {
+      val result = test { tempDir =>
+        for {
+          _ <- fix("code1.py", tempDir)
+          _ <- run(tempDir, "tag")
+          _ <- branch("feature/f1", tempDir)
+          _ <- feat("code2.py", tempDir)
+          _ <- checkout("master", tempDir)
+          _ <- major("code3.py", tempDir)
+          _ <- merge("feature/f1", tempDir)
+          //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
+          run <- run(tempDir, "next")
+        } yield run
+      }
+      assertM(result)(equalTo("1.0.0"))
+    },
+    testM("feature branch (+major) and master (+minor) both advance version and should return version 1.0.0") {
+      val result = test { tempDir =>
+        for {
+          _ <- fix("code1.py", tempDir)
+          _ <- run(tempDir, "tag")
+          _ <- branch("feature/f1", tempDir)
+          _ <- major("code2.py", tempDir)
+          _ <- checkout("master", tempDir)
+          _ <- feat("code3.py", tempDir)
+          _ <- merge("feature/f1", tempDir)
+          //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
+          run <- run(tempDir, "next")
+        } yield run
+      }
+      assertM(result)(equalTo("1.0.0"))
+    },
+    testM("feature branch 1 (+major) and feature branch 2 (+minor) both advance version and should return version 1.0.0") {
+      val result = test { tempDir =>
+        for {
+          _ <- fix("code1.py", tempDir)
+          _ <- run (tempDir, "tag")
 
-class EndToEndTests extends AnyFlatSpec with Matchers {
-  "no tags" should "return version 0.1.0" in {
-    File.usingTemporaryDirectory("git-mkver") { tempDir =>
-      init(tempDir)
-      fix("code1.py", tempDir)
-      run(tempDir, "next") should be(Right("0.1.0"))
+          _ <- branch ("feature/f1", tempDir)
+          _ <- feat ("code2.py", tempDir)
+          _ <- checkout ("master", tempDir)
+
+          _ <- branch ("feature/f2", tempDir)
+          _ <- major ("code3.py", tempDir)
+          _ <- checkout ("master", tempDir)
+
+          _ <- merge ("feature/f1", tempDir)
+          _ <- merge ("feature/f2", tempDir)
+          //_ <- println (ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
+          run <- run(tempDir, "next")
+        } yield run
+      }
+      assertM(result)(equalTo("1.0.0"))
+    }
+  )
+
+  def test[R, E, A](f: File => ZIO[R, E, A]) = {
+    Files.usingTempDirectory("git-mkver") { tempDir: Path =>
+      init(tempDir.toFile()).flatMap { _ =>
+        f(tempDir.toFile())
+      }
     }
   }
 
-  "master advances correctly" should "return version 0.1.1" in {
-    File.usingTemporaryDirectory("git-mkver") { tempDir =>
-      init(tempDir)
-      fix("code1.py", tempDir)
-      run(tempDir, "tag")
-      fix("code2.py", tempDir)
-      run(tempDir, "next") should be(Right("0.1.1"))
-      println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-    }
+  def run(tempDir: File, command: String): RIO[Blocking, String] = {
+    new Main(Git.Live.git(Some(tempDir))).mainImpl(List(command))
   }
 
-  "feature branch (+minor) and master (+major) both advance version" should "return version 1.0.0" in {
-    File.usingTemporaryDirectory("git-mkver") { tempDir =>
-      init(tempDir)
-      fix("code1.py", tempDir)
-      run(tempDir, "tag")
-      branch("feature/f1", tempDir)
-      feat("code2.py", tempDir)
-      checkout("master", tempDir)
-      major("code3.py", tempDir)
-      merge("feature/f1", tempDir)
-      run(tempDir, "next") should be(Right("1.0.0"))
-      println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-    }
+  def init(tempDir: File): RIO[Blocking, Unit] = {
+    for {
+      _ <- exec(Array("git", "init"), Some(tempDir))
+      _ <- exec (Array("git", "config", "user.name", "Mona Lisa"), Some(tempDir))
+      _ <- exec (Array("git", "config", "user.email", "mona.lisa@email.org"), Some(tempDir))
+    } yield ()
   }
 
-  "feature branch (+major) and master (+minor) both advance version" should "return version 1.0.0" in {
-    File.usingTemporaryDirectory("git-mkver") { tempDir =>
-      init(tempDir)
-      fix("code1.py", tempDir)
-      run(tempDir, "tag")
-      branch("feature/f1", tempDir)
-      major("code2.py", tempDir)
-      checkout("master", tempDir)
-      feat("code3.py", tempDir)
-      merge("feature/f1", tempDir)
-      run(tempDir, "next") should be(Right("1.0.0"))
-      println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-    }
+  def fix(name: String, tempDir: File): RIO[Blocking, Unit] = {
+    for {
+      path <- Path(tempDir.file.toString, name)
+      _ <- Files.touch(path)
+      _ <- exec (Array("git", "add", "."), Some(tempDir))
+      _ <- exec (Array("git", "commit", "-m", s"fix: $name"), Some(tempDir))
+    } yield ()
   }
 
-  "feature branch 1 (+major) and feature branch 2 (+minor) both advance version" should "return version 1.0.0" in {
-    File.usingTemporaryDirectory("git-mkver") { tempDir =>
-      init(tempDir)
-      fix("code1.py", tempDir)
-      run(tempDir, "tag")
-
-      branch("feature/f1", tempDir)
-      feat("code2.py", tempDir)
-      checkout("master", tempDir)
-
-      branch("feature/f2", tempDir)
-      major("code3.py", tempDir)
-      checkout("master", tempDir)
-
-      merge("feature/f1", tempDir)
-      merge("feature/f2", tempDir)
-      run(tempDir, "next") should be(Right("1.0.0"))
-      println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-    }
+  def feat(name: String, tempDir: File): RIO[Blocking, Unit] = {
+    for {
+      path <- Path(tempDir.file.toString, name)
+      _ <- Files.touch(path)
+      _ <- exec(Array("git", "add", "."), Some(tempDir))
+      _ <- exec(Array("git", "commit", "-m", s"feat: $name"), Some(tempDir))
+    } yield ()
   }
 
-  def run(tempDir: File, command: String): Either[MkVerError, String] = {
-    new Main(Git.Live.git(Some(tempDir))).mainImpl(Array(command))
+  def major(name: String, tempDir: File): RIO[Blocking, Unit] = {
+    for {
+      path <- Path(tempDir.file.toString, name)
+      _ <- Files.touch(path)
+      _ <- exec(Array("git", "add", "."), Some(tempDir))
+      _ <- exec(Array("git", "commit", "-m", s"major: $name"), Some(tempDir))
+    } yield ()
   }
 
-  def init(tempDir: File): Unit = {
-    exec(Array("git", "init"), Some(tempDir))
-    exec(Array("git", "config", "user.name", "Mona Lisa"), Some(tempDir))
-    exec(Array("git", "config", "user.email", "mona.lisa@email.org"), Some(tempDir))
-  }
-
-  def fix(name: String, tempDir: File): Unit = {
-    (tempDir / name).touch()
-    exec(Array("git", "add", "."), Some(tempDir))
-    exec(Array("git", "commit", "-m", s"fix: $name"), Some(tempDir))
-  }
-
-  def feat(name: String, tempDir: File): Unit = {
-    (tempDir / name).touch()
-    exec(Array("git", "add", "."), Some(tempDir))
-    exec(Array("git", "commit", "-m", s"feat: $name"), Some(tempDir))
-  }
-
-  def major(name: String, tempDir: File): Unit = {
-    (tempDir / name).touch()
-    exec(Array("git", "add", "."), Some(tempDir))
-    exec(Array("git", "commit", "-m", s"major: $name"), Some(tempDir))
-  }
-
-  def branch(name: String, tempDir: File): Unit = {
+  def branch(name: String, tempDir: File): RIO[Blocking, Unit] = {
     exec(Array("git", "checkout", "-b", name), Some(tempDir))
   }
 
-  def merge(name: String, tempDir: File): Unit = {
+  def merge(name: String, tempDir: File): RIO[Blocking, Unit] = {
     exec(Array("git", "merge", "--no-ff", name), Some(tempDir))
   }
 
-  def checkout(name: String, tempDir: File): Unit = {
+  def checkout(name: String, tempDir: File): RIO[Blocking, Unit] = {
     exec(Array("git", "checkout", name), Some(tempDir))
   }
 
-  def exec(commands: Array[String], dir: Option[File] = None) = {
-    val result = ProcessUtils.exec(commands, dir)
-    if (result.exitCode != 0) {
-      println(result.stderr)
-      result.exitCode should be(0)
+  def exec(commands: Array[String], dir: Option[File] = None): RIO[Blocking, Unit] = {
+    ProcessUtils.exec(commands, dir).flatMap { result =>
+      RIO.fail(MkVerException(result.stdout)).when(result.exitCode != 0)
     }
   }
 }

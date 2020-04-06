@@ -1,89 +1,106 @@
 package net.cardnell.mkver
 
-import better.files._
 import net.cardnell.mkver.MkVer._
 import net.cardnell.mkver.CommandLineArgs.{CommandLineOpts, InfoOpts, NextOpts, PatchOpts, TagOpts}
+import zio._
+import zio.blocking.Blocking
+import zio.console._
 
 case class ProcessResult(stdout: String, stderr: String, exitCode: Int)
 
-case class MkVerError(message: String)
+case class MkVerException(message: String) extends Exception {
+  override def getMessage: String = message
+}
 
-object Main {
-  def main(args: Array[String]): Unit = {
-    new Main().mainImpl(args) match {
-      case Left(message) =>
-        System.err.println(message)
-        sys.exit(1)
-      case Right(message) =>
-        println(message)
-    }
+object Main extends App {
+  def run(args: List[String]) =
+    appLogic(args).fold(_ => 1, _ => 0)
+
+  def appLogic(args: List[String]) = {
+    new Main().mainImpl(args)
+      .flatMap(message => putStrLn(message))
+      .flatMapError(err => putStrLn(err.getMessage))
   }
 }
 
 class Main(git: Git.Service = Git.Live.git()) {
-  def mainImpl(args: Array[String]): Either[MkVerError, String] = {
+  def mainImpl(args: List[String]): RIO[Blocking, String] = {
     CommandLineArgs.mkverCommand.parse(args, sys.env)
-      .fold( help => Left(MkVerError(help.toString())), opts => run(opts))
+      .fold( help => Task.fail(MkVerException(help.toString())), opts => run(opts))
   }
 
-  def run(opts: CommandLineOpts): Either[MkVerError, String] = {
-    git.checkGitRepo().flatMap { _ =>
-      val currentBranch = git.currentBranch()
-      AppConfig.getBranchConfig(opts.configFile, currentBranch).flatMap { config =>
-        opts.p match {
-          case nextOps@NextOpts(_, _) =>
-            runNext(nextOps, config, currentBranch)
-          case TagOpts(_) =>
-            runTag(config, currentBranch).map(_ => "")
-          case PatchOpts(_) =>
-            AppConfig.getPatchConfigs(opts.configFile, config).flatMap { patchConfigs =>
-              runPatch(config, currentBranch, patchConfigs).map(_ => "")
-            }
-          case InfoOpts(includeBranchConfig) =>
-            runInfo(config, currentBranch, includeBranchConfig)
-        }
+  def run(opts: CommandLineOpts): RIO[Blocking, String] = {
+    for {
+      _ <- git.checkGitRepo()
+      currentBranch <- git.currentBranch()
+      config <- AppConfig.getBranchConfig(opts.configFile, currentBranch)
+      r <- opts.p match {
+        case nextOps@NextOpts(_, _) =>
+          runNext(nextOps, config, currentBranch)
+        case TagOpts(_) =>
+          runTag(config, currentBranch).map(_ => "")
+        case PatchOpts(_) =>
+          AppConfig.getPatchConfigs(opts.configFile, config).flatMap { patchConfigs =>
+            runPatch(config, currentBranch, patchConfigs).map(_ => "")
+          }
+        case InfoOpts(includeBranchConfig) =>
+          runInfo(config, currentBranch, includeBranchConfig)
       }
-    }
+    } yield r
   }
 
-  def runNext(nextOpts: NextOpts, config: BranchConfig, currentBranch: String): Either[MkVerError, String] = {
+  def runNext(nextOpts: NextOpts, config: BranchConfig, currentBranch: String): RIO[Blocking, String] = {
     getNextVersion(git, config, currentBranch).flatMap { nextVersion =>
       nextOpts.format.map { format =>
-        Right(Formatter(nextVersion, config).format(format))
+        Task.effect(Formatter(nextVersion, config).format(format))
       }.getOrElse {
         formatTag(config, nextVersion, nextOpts.prefix)
       }
     }
   }
 
-  def runTag(config: BranchConfig, currentBranch: String): Either[MkVerError, Unit] = {
-    getNextVersion(git, config, currentBranch).map { nextVersion =>
-      formatTag(config, nextVersion).map { tag =>
-        val tagMessage = Formatter(nextVersion, config).format(config.tagMessageFormat)
-        if (config.tag && nextVersion.commitCount > 0) {
-          git.tag(tag, tagMessage)
-        }
+  def runTag(config: BranchConfig, currentBranch: String) = {
+    for {
+      nextVersion <- getNextVersion(git, config, currentBranch)
+      tag <- formatTag(config, nextVersion)
+      tagMessage = Formatter(nextVersion, config).format(config.tagMessageFormat)
+      _ <- if (config.tag && nextVersion.commitCount > 0) {
+        git.tag(tag, tagMessage)
+      } else {
+        RIO.unit
       }
-    }
+    } yield ()
   }
 
-  def runPatch(config: BranchConfig, currentBranch: String, patchConfigs: List[PatchConfig]): Either[MkVerError, Unit] = {
+  def runPatch(config: BranchConfig, currentBranch: String, patchConfigs: List[PatchConfig]): RIO[Blocking, Unit] = {
     getNextVersion(git, config, currentBranch).map { nextVersion =>
       patchConfigs.foreach { patch =>
         val regex = patch.find.r
         val replacement = Formatter(nextVersion, config).format(patch.replace)
         patch.filePatterns.foreach { filePattern =>
-          File.currentWorkingDirectory.glob(filePattern, includePath = true).foreach { file =>
-            println(s"patching: $file, replacement: $replacement")
-            val newContent = regex.replaceAllIn(file.contentAsString, replacement)
-            file.overwrite(newContent)
-          }
+          for {
+            cwd <- Files.currentWorkingDirectory
+            matches <- Files.glob(cwd, filePattern)
+            _ <- matches.foreach { fileMatch =>
+              // TODO replace as entire string rather than lines to preserve line endings
+              for {
+                content <- Files.readAllLines(fileMatch)
+                newContent <- ZIO.effect(content.map(l => regex.replaceAllIn(l, replacement)))
+                _ <- Files.write(fileMatch, newContent)
+              } yield ()
+            }
+          } yield ()
+//          File.currentWorkingDirectory.glob(filePattern, includePath = true).foreach { file =>
+//            println(s"patching: $file, replacement: $replacement")
+//            val newContent = regex.replaceAllIn(file.contentAsString, replacement)
+//            file.overwrite(newContent)
+//          }
         }
       }
     }
   }
 
-  def runInfo(config: BranchConfig, currentBranch: String, includeBranchConfig: Boolean): Either[MkVerError, String] = {
+  def runInfo(config: BranchConfig, currentBranch: String, includeBranchConfig: Boolean): RIO[Blocking, String] = {
     getNextVersion(git, config, currentBranch).map { nextVersion =>
       val formatter = Formatter(nextVersion, config)
       val formats = formatter.formats.map { format =>

@@ -2,6 +2,11 @@ package net.cardnell.mkver
 
 import java.time.LocalDate
 
+import zio.blocking.Blocking
+import zio.{IO, RIO, Task, ZIO}
+
+case class CommitInfo(shortHash: String, fullHash: String, commitsBeforeHead: Int, tags: List[Version])
+
 case class VersionData(major: Int,
                        minor: Int,
                        patch: Int,
@@ -27,6 +32,21 @@ case class Version(major: Int = 0,
   }
 }
 
+object Version {
+  def parseTag(input: String, prefix: String): Option[Version] = {
+    val version = ("^" + prefix + "(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").r
+
+    input match {
+      case version(major, minor, patch, prerelease, buildmetadata) =>
+        Some(Version(major.toInt, minor.toInt, patch.toInt, Option(prerelease), Option(buildmetadata)))
+      case _ =>
+        None
+    }
+  }
+}
+
+case class LastVersion(commitHash: String, commitsBeforeHead: Int, version: Version)
+
 case class DescribeInfo(lastTag: String, commitCount: Int, commitHash: String)
 
 case class VersionBumps(major: Boolean = false, minor: Boolean = false, patch: Boolean = false, commitCount: Int = 0) {
@@ -38,73 +58,86 @@ case class VersionBumps(major: Boolean = false, minor: Boolean = false, patch: B
 
 object VersionBumps {
   val minVersionBump = VersionBumps(major = false, minor = true, patch = false)
+  val none = VersionBumps()
 }
 
 object MkVer {
-  def getDescribeInfo(git: Git.Service, prefix: String): DescribeInfo = {
-    val describeResult = git.describe(prefix)
+  def getCommitInfos(git: Git.Service, prefix: String): RIO[Blocking, List[CommitInfo]]= {
+    val lineMatch = "^([0-9a-f]{5,40}) ([0-9a-f]{5,40}) *(\\((.*)\\))?$".r
 
-    // what if it was a branch tag that contains "-"?
-    val describe = "^(.*)-(\\d+)-g([0-9a-f]{5,40})$".r
-
-    describeResult match {
-      case describe(tag, commitCount, hash) => DescribeInfo(tag, commitCount.toInt, hash)
+    git.commitInfoLog().map { log =>
+      log.lines.zipWithIndex.flatMap {
+        case (line, i) => {
+          line match {
+            case lineMatch(shortHash, longHash, _, names) => {
+              val versions = Option(names).getOrElse("").split(",").toList
+                .map(_.trim)
+                .filter(_.startsWith("tag: "))
+                .map(_.replace("tag: ", ""))
+                .flatMap(Version.parseTag(_, prefix))
+              Some(CommitInfo(shortHash, longHash, i, versions))
+            }
+            case _ => None
+          }
+        }
+      }.toList
     }
   }
 
-  def getLastVersion(prefix: String, lastVersionTag: String): Either[MkVerError, Version] = {
-    val version = ("^" + prefix + "(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").r
-
-    lastVersionTag match {
-      case version(major, minor, patch, prerelease, buildmetadata) =>
-        Right(Version(major.toInt, minor.toInt, patch.toInt, Option(prerelease), Option(buildmetadata)))
-      case _ =>
-        Left(MkVerError(s"fatal: unable to parse last tag. ($lastVersionTag) doesn't match a SemVer pattern"))
-    }
+  def getLastVersion(commitInfos: List[CommitInfo]): Option[LastVersion] = {
+    commitInfos.find(_.tags.nonEmpty).map(ci => LastVersion(ci.fullHash, ci.commitsBeforeHead, ci.tags.head))
   }
 
-  def formatTag(config: BranchConfig, versionData: VersionData, formatAsTag: Boolean = true): Either[MkVerError, String] = {
+  def formatTag(config: BranchConfig, versionData: VersionData, formatAsTag: Boolean = true): Task[String] = {
     val allowedFormats = Formatter.builtInFormats.map(_.name)
     if (!allowedFormats.contains(config.tagFormat)) {
-      Left(MkVerError(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
+      IO.fail(MkVerException(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
     } else {
       if (formatAsTag) {
-        Right(Formatter(versionData, config).format("{Tag}"))
+        Task.effect(Formatter(versionData, config).format("{Tag}"))
       } else {
-        Right(Formatter(versionData, config).format("{Next}"))
+        Task.effect(Formatter(versionData, config).format("{Next}"))
       }
     }
   }
 
-  def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): Either[MkVerError, VersionData] = {
-    val describeInfo = getDescribeInfo(git, config.prefix)
-    getLastVersion(config.prefix, describeInfo.lastTag).map { lastVersion =>
-      // If no commits since last tag then there is no next version yet - make bumps = 0
-      val bumps = if (describeInfo.commitCount == 0) VersionBumps() else getVersionBumps(git, describeInfo.lastTag)
-      val nextVersion = lastVersion.bump(bumps)
+  def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): RIO[Blocking, VersionData] = {
+    for {
+      commitInfos <- getCommitInfos(git, config.prefix)
+      lastVersionOpt = getLastVersion(commitInfos)
+      bumps <- getVersionBumps(git, lastVersionOpt)
+      nextVersion = lastVersionOpt.map(_.version.bump(bumps)).getOrElse(Version())
+    } yield {
       VersionData(
         major = nextVersion.major,
         minor = nextVersion.minor,
         patch = nextVersion.patch,
-        commitCount = describeInfo.commitCount,
+        commitCount = lastVersionOpt.map(_.commitsBeforeHead).getOrElse(commitInfos.length),
         branch = currentBranch,
-        commitHashShort = describeInfo.commitHash,
-        commitHashFull = "TODO",
+        commitHashShort = commitInfos.headOption.map(_.shortHash).getOrElse(""),
+        commitHashFull = commitInfos.headOption.map(_.fullHash).getOrElse(""),
         date = LocalDate.now(),
         buildNo = sys.env.getOrElse("BUILD_BUILDNUMBER", "TODO")
       )
     }
   }
 
-  def getVersionBumps(git: Git.Service, lastVersionTag: String): VersionBumps = {
-    val log = git.log(lastVersionTag)
-
-    val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, VersionBumps())
-    if (logBumps == VersionBumps()) {
-      VersionBumps.minVersionBump
-    } else {
-      logBumps
+  def getVersionBumps(git: Git.Service, lastVersion: Option[LastVersion]): RIO[Blocking, VersionBumps] = {
+    lastVersion match {
+      case None => RIO.succeed(VersionBumps.minVersionBump) // No previous version
+      case Some(LastVersion(_, 0, _)) => RIO.succeed(VersionBumps.none) // This commit is a version
+      case Some(lv) => {
+        git.fullLog(lv.commitHash).map { log =>
+          val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, VersionBumps())
+          if (logBumps == VersionBumps()) {
+            VersionBumps.minVersionBump
+          } else {
+            logBumps
+          }
+        }
+      }
     }
+
   }
 
   def calcBumps(lines: List[String], bumps: VersionBumps): VersionBumps = {

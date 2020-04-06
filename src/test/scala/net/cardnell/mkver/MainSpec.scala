@@ -1,26 +1,31 @@
 package net.cardnell.mkver
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import zio.{RIO, Task}
+import zio.blocking.Blocking
+import zio.test.Assertion.equalTo
+import zio.test.{assertM, suite, testM}
 
-class MainSpec extends AnyFlatSpec with Matchers {
+object MainSpec {
   def fakeGit(currentBranchV: String = "", logV: String = "", describeV: String = "", tagV: String= "") = new Git.Service {
-    override def currentBranch(): String = currentBranchV
-    override def log(lastVersionTag: String): String = logV
-    override def describe(prefix: String): String = describeV
-    override def tag(tag: String, tagMessage: String): Unit = tagV
-    override def checkGitRepo(): Either[MkVerError, Unit] = Right(())
+    override def currentBranch(): RIO[Blocking, String] = RIO.succeed(currentBranchV)
+    override def fullLog(lastVersionTag: String): RIO[Blocking, String] = RIO.succeed(logV)
+    override def commitInfoLog(): RIO[Blocking, String] = RIO.succeed(describeV)
+    override def tag(tag: String, tagMessage: String): RIO[Blocking, Unit] = RIO.succeed(tagV)
+    override def checkGitRepo(): RIO[Blocking, Unit] = RIO.unit
   }
 
-  "next" should "return" in {
-    val result = new Main(fakeGit("master", "", "v0.0.0-1-gabcdef")).mainImpl(Array("next"))
-    result should be(Right("0.1.0"))
-  }
-
-  "tag" should "return" in {
-    val result = new Main(fakeGit("master", "", "v0.0.0-1-gabcdef")).mainImpl(Array("tag"))
-    result should be(Right(""))
-  }
+  val suite1 = suite("main") (
+    testM("next should return") {
+      val result = new Main(fakeGit("master", "", "v0.0.0-1-gabcdef")).mainImpl(List("next"))
+      assertM(result)(equalTo("0.1.0"))
+    },
+    testM("tag should return") {
+      val result = new Main(fakeGit("master", "", "v0.0.0-1-gabcdef")).mainImpl(List("tag"))
+      assertM(result)(
+        equalTo("")
+      )
+    }
+  )
 
   // TODO stop this actually patching files!
 //  "patch" should "return " in {

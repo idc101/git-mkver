@@ -1,17 +1,11 @@
 package net.cardnell.mkver
 
-import java.io
-
-import zio.IO
-import zio.config._
-import ConfigDescriptor._
-import zio.config.PropertyTree._
-import zio.config.ConfigDocs._
-import ConfigDocs.Details._
-import better.files.File
-import com.typesafe.config.ConfigFactory
-import zio.config.typesafe.{TypeSafeConfigSource, TypesafeConfig}
 import cats.implicits._
+import com.typesafe.config.ConfigFactory
+import zio.{Layer, Task, ZIO}
+import zio.config.ConfigDescriptor._
+import zio.config._
+import zio.config.typesafe.{TypeSafeConfigSource, TypesafeConfig}
 
 case class Format(name: String, format: String)
 object Format {
@@ -92,7 +86,7 @@ object AppConfig {
       nested("patches")(list(PatchConfig.patchConfigDesc))
     )(AppConfig.apply, AppConfig.unapply)
 
-  def getBranchConfig(configFile: Option[String], currentBranch: String): Either[MkVerError, BranchConfig] = {
+  def getBranchConfig(configFile: Option[String], currentBranch: String): Task[BranchConfig] = {
     getAppConfig(configFile).flatMap { appConfig =>
       getReferenceConfig.map { refConfig =>
         val defaults = appConfig.defaults.copy(formats = mergeFormats(refConfig.defaults.formats, appConfig.defaults.formats))
@@ -121,67 +115,64 @@ object AppConfig {
     overridesMap.values.foldLeft(startMap)((a, n) => a.+((n.name, n))).values.toList.sortBy(_.name)
   }
 
-  def getPatchConfigs(configFile: Option[String], branchConfig: BranchConfig): Either[MkVerError, List[PatchConfig]] = {
+  def getPatchConfigs(configFile: Option[String], branchConfig: BranchConfig): Task[List[PatchConfig]] = {
     getAppConfig(configFile).flatMap { appConfig =>
       val allPatchConfigs = appConfig.patches.map(it => (it.name, it)).toMap
-      val x: List[Either[MkVerError, PatchConfig]] = branchConfig.patches.map { c =>
+      Task.foreach(branchConfig.patches) { c =>
         allPatchConfigs.get(c) match {
-          case Some(p) => Right[MkVerError, PatchConfig](p)
-          case None => Left[MkVerError, PatchConfig](MkVerError(s"Can't find patch config named $c"))
+          case Some(p) => Task.succeed(p)
+          case None => Task.fail(MkVerException(s"Can't find patch config named $c"))
         }
       }
-      val y = x.sequence
-      y
     }
   }
 
-  def getAppConfig(configFile: Option[String]): Either[MkVerError, AppConfig] = {
+  def getAppConfig(configFile: Option[String]): Task[AppConfig] = {
     val file = configFile.map { cf =>
-      if (File(cf).exists) {
-        Right(Some(cf)
-        )
-      } else {
-        Left(MkVerError(s"--config $cf does not exist"))
-      }
+      for {
+        path <- Path(cf)
+        exists <- Files.exists(path)
+        r <- if (exists) Task.some(cf) else Task.fail(MkVerException(s"--config $cf does not exist"))
+      } yield r
     }.orElse {
       sys.env.get("GITMKVER_CONFIG").map { cf =>
-        if (File(cf).exists) {
-          Right(Some(cf))
-        } else {
-          Left(MkVerError(s"GITMKVER_CONFIG $cf does not exist"))
-        }
+        for {
+          path <- Path(cf)
+          exists <- Files.exists(path)
+          r <- if (exists) Task.some(cf) else Task.fail(MkVerException(s"GITMKVER_CONFIG $cf does not exist"))
+        } yield r
       }
     }.getOrElse {
-      if (File("mkver.conf").exists) {
-        Right(Some("mkver.conf"))
-      } else {
-        Right(None)
-      }
+      for {
+        path <- Path("mkver.conf")
+        exists <- Files.exists(path)
+        r <- if (exists) Task.some("mkver.conf") else Task.none
+      } yield r
     }
 
     file.flatMap { of =>
       of.map { f =>
         TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(f)))
-        // TODO Use this when in ZIO land
-        // TypeSafeConfigSource.fromHoconFile(new java.io.File("mkver.conf"))
+        // TODO Use this?
+        //TypesafeConfig.fromHoconFile(new java.io.File(c), AppConfig.appConfigDesc)
       }.getOrElse {
         TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
-      }.fold(l => Left(MkVerError(l)), r => Right(r))
+      }.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
     }.flatMap { source: ConfigSource[String, String] =>
       read(AppConfig.appConfigDesc from source) match {
-        case Left(value) => Left(MkVerError("Unable to parse config: " + value))
-        case Right(result) => Right(result)
+        case Left(value) => Task.fail(MkVerException("Unable to parse config: " + value))
+        case Right(result) => Task.succeed(result)
       }
     }
   }
 
-  def getReferenceConfig: Either[MkVerError, AppConfig] = {
+  def getReferenceConfig: Task[AppConfig] = {
     val source = TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
-    source.fold(l => Left(MkVerError(l)), r => Right(r))
+    source.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
       .flatMap { source: ConfigSource[String, String] =>
       read(AppConfig.appConfigDesc from source) match {
-        case Left(value) => Left(MkVerError("Unable to parse config: " + value))
-        case Right(result) => Right(result)
+        case Left(value) => Task.fail(MkVerException("Unable to parse config: " + value))
+        case Right(result) => Task.succeed(result)
       }
     }
   }

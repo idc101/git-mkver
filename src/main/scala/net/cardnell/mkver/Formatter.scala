@@ -48,7 +48,7 @@ object Formatter {
       Format("bn", version.buildNo),
       Format("tag?", branchConfig.tag.toString),
       Format("pr", branchConfig.prefix.toString)
-    ) ++ AppConfig.mergeFormats(branchConfig.formats, builtInFormats, Nil)
+    ) ++ AppConfig.mergeFormats(branchConfig.formats, builtInFormats)
       ++ envVariables()
       ++ azureDevOpsVariables())
   }

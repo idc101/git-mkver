@@ -1,36 +1,51 @@
 package net.cardnell.mkver
 
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
+import zio.test._
+import zio.test.Assertion._
 
-class AppConfigSpec extends AnyFlatSpec with Matchers {
+object AllSuites extends DefaultRunnableSpec {
 
-  "getBranchConfig for master" should "return master config" in {
-    AppConfig.getBranchConfig(None, "master") match {
-      case Left(_) => fail()
-      case Right(branchConfig) => branchConfig.name should be("master")
+  def spec = suite("All tests")(
+    AppConfigSpec.suite1, AppConfigSpec.suite2, AppConfigSpec.suite3,
+    FormatterSpec.suite1,
+    VersionSpec.suite1,
+    MkVerSpec.suite1,
+    MkVerSpec.suite2,
+    MkVerSpec.suite3,
+    MainSpec.suite1,
+    EndToEndTests.suite1
+  )
+}
+
+object AppConfigSpec {
+  val suite1 = suite("getBranchConfig") (
+    testM("master should return master config") {
+      assertM(AppConfig.getBranchConfig(None, "master"))(
+        hasField("name", _.name, equalTo("master"))
+      )
+    },
+    testM("feat should return .* config") {
+      assertM(AppConfig.getBranchConfig(None, "feat"))(
+        hasField("name", (c:BranchConfig) => c.name, equalTo(".*")) &&
+        hasField("formats", _.formats, contains(Format("BuildMetaData", "{br}.{sh}")))
+      )
     }
-  }
+  )
 
-  "getBranchConfig for feat" should "return .* config" in {
-    val branchConfig = AppConfig.getBranchConfig(None, "feat/f1") match {
-      case Left(_) => fail()
-      case Right(branchConfig) => branchConfig.name should be(".*")
+  val suite2 = suite("mergeFormat")(
+    test("should merge formats") {
+      val f1 = Format("f1", "v1")
+      val f2 = Format("f2", "v2")
+      val f3 = Format("f3", "v3")
+      val f1b = Format("f1", "v4")
+      assert(AppConfig.mergeFormats(List(f1, f3), List(f1b, f2)))(equalTo(List(f1b, f2, f3).sortBy(_.name)))
     }
-  }
+  )
 
-  "mergeFormats" should "merge formats" in {
-    val f1 = Format("f1", "v1")
-    val f2 = Format("f2", "v2")
-    val f3 = Format("f3", "v3")
-    val f1b = Format("f1", "v4")
-    val result = AppConfig.mergeFormats(List(f1, f3), List(f1b, f2))
-   result should be(List(f1b, f2, f3).sortBy(_.name))
-  }
-
-  "getPatchConfigs" should "return nothing in reference config" in {
-    val branchConfig = BranchConfig(".*", "v", true, "Version", "release {Version}", "RC", Nil, Nil)
-    val patchConfigs = AppConfig.getPatchConfigs(None, branchConfig)
-    patchConfigs should be(Right(Nil))
-  }
+  val suite3 = suite("mergeFormat")(
+    testM("should merge formats") {
+      val branchConfig = BranchConfig(".*", "v", true, "Version", "release {Version}", "RC", Nil, Nil)
+      assertM(AppConfig.getPatchConfigs(None, branchConfig))(equalTo(Nil))
+    }
+  )
 }

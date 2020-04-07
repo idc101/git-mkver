@@ -25,7 +25,7 @@ class AppConfigSpec extends AnyFlatSpec with Matchers {
     val f3 = Format("f3", "v3")
     val f1b = Format("f1", "v4")
     val result = AppConfig.mergeFormats(List(f1, f3), List(f1b, f2))
-    result should be(List(f1b, f2, f3).sortBy(_.name))
+   result should be(List(f1b, f2, f3).sortBy(_.name))
   }
 
   "getPatchConfigs" should "return nothing in reference config" in {

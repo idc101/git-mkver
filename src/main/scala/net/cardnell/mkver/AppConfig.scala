@@ -93,33 +93,32 @@ object AppConfig {
     )(AppConfig.apply, AppConfig.unapply)
 
   def getBranchConfig(configFile: Option[String], currentBranch: String): Either[MkVerError, BranchConfig] = {
-    getAppConfig(configFile).map { appConfig =>
-      val defaults = appConfig.defaults
+    getAppConfig(configFile).flatMap { appConfig =>
+      getReferenceConfig.map { refConfig =>
+        val defaults = appConfig.defaults.copy(formats = mergeFormats(refConfig.defaults.formats, appConfig.defaults.formats))
 
-      val branchConfig = appConfig.branches.find { bc => currentBranch.matches(bc.name) }
+        val branchConfig = appConfig.branches.find { bc => currentBranch.matches(bc.name) }
 
-      branchConfig.map { bc =>
-        BranchConfig(
-          name = bc.name,
-          prefix = bc.prefix.getOrElse(defaults.prefix),
-          tag = bc.tag.getOrElse(defaults.tag),
-          tagFormat = bc.tagFormat.getOrElse(defaults.tagFormat),
-          tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
-          preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
-          formats = mergeFormats(bc.formats.getOrElse(Nil), defaults.formats),
-          patches = bc.patches.getOrElse(defaults.patches)
-        )
-      }.getOrElse(defaults)
+        branchConfig.map { bc =>
+          BranchConfig(
+            name = bc.name,
+            prefix = bc.prefix.getOrElse(defaults.prefix),
+            tag = bc.tag.getOrElse(defaults.tag),
+            tagFormat = bc.tagFormat.getOrElse(defaults.tagFormat),
+            tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
+            preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
+            formats = mergeFormats(bc.formats.getOrElse(Nil), defaults.formats),
+            patches = bc.patches.getOrElse(defaults.patches)
+          )
+        }.getOrElse(defaults)
+      }
     }
   }
 
-  def mergeFormats(branch: List[Format], defaults: List[Format]): List[Format] = {
-    def update(startList: List[Format], overrides: List[Format]): List[Format] = {
-      val startMap = startList.map( it => (it.name, it)).toMap
-      val overridesMap = overrides.map( it => (it.name, it)).toMap
-      overridesMap.values.foldLeft(startMap)((a, n) => a.+((n.name, n))).values.toList.sortBy(_.name)
-    }
-    update(defaults, branch)
+  def mergeFormats(startList: List[Format], overrides: List[Format]): List[Format] = {
+    val startMap = startList.map( it => (it.name, it)).toMap
+    val overridesMap = overrides.map( it => (it.name, it)).toMap
+    overridesMap.values.foldLeft(startMap)((a, n) => a.+((n.name, n))).values.toList.sortBy(_.name)
   }
 
   def getPatchConfigs(configFile: Option[String], branchConfig: BranchConfig): Either[MkVerError, List[PatchConfig]] = {
@@ -169,6 +168,17 @@ object AppConfig {
         TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
       }.fold(l => Left(MkVerError(l)), r => Right(r))
     }.flatMap { source: ConfigSource[String, String] =>
+      read(AppConfig.appConfigDesc from source) match {
+        case Left(value) => Left(MkVerError("Unable to parse config: " + value))
+        case Right(result) => Right(result)
+      }
+    }
+  }
+
+  def getReferenceConfig: Either[MkVerError, AppConfig] = {
+    val source = TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
+    source.fold(l => Left(MkVerError(l)), r => Right(r))
+      .flatMap { source: ConfigSource[String, String] =>
       read(AppConfig.appConfigDesc from source) match {
         case Left(value) => Left(MkVerError("Unable to parse config: " + value))
         case Right(result) => Right(result)

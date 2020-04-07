@@ -33,7 +33,7 @@ object Formatter {
     Formatter(List(
       Format("Next", "{" + branchConfig.tagFormat + "}"),
       Format("Tag", "{pr}{" + branchConfig.tagFormat + "}"),
-      Format("TagMessage", "{" + branchConfig.tagMessageFormat + "}"),
+      Format("TagMessage", branchConfig.tagMessageFormat),
       Format("PreReleaseName", branchConfig.preReleaseName),
       Format("PreReleaseNumber", ""),
       Format("x", version.major.toString),

@@ -12,7 +12,7 @@ object CommandLineArgs {
   val configFile: Opts[Option[String]] = Opts.option[String]("config", short = "c", metavar = "file", help = "Config file to load").orNone
   val format: Opts[Option[String]] = Opts.option[String]("format", short = "f", metavar = "string", help = "Format string for the version number").orNone
   val prefix: Opts[Boolean] = Opts.flag("prefix", short = "p", help = "Include the tag prefix in the output").orFalse
-  val includeBranchConfig: Opts[Boolean] = Opts.flag("include-branch-config", short = "i", help = "Format string for the version number").orTrue
+  val includeBranchConfig: Opts[Boolean] = Opts.flag("include-branch-config", short = "i", help = "Format string for the version number").orFalse
   val nextOptions: Opts[NextOpts] = (format, prefix).mapN(NextOpts.apply)
   val tagOptions: Opts[TagOpts] = format.map(TagOpts.apply)
   val patchOptions: Opts[PatchOpts] = format.map(PatchOpts.apply)

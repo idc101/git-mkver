@@ -107,7 +107,7 @@ object AppConfig {
             tagFormat = bc.tagFormat.getOrElse(defaults.tagFormat),
             tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
             preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
-            formats = mergeFormats(bc.formats.getOrElse(Nil), defaults.formats),
+            formats = mergeFormats(defaults.formats, bc.formats.getOrElse(Nil)),
             patches = bc.patches.getOrElse(defaults.patches)
           )
         }.getOrElse(defaults)

@@ -10,7 +10,7 @@ object MainSpec {
     override def currentBranch(): RIO[Blocking, String] = RIO.succeed(currentBranchV)
     override def fullLog(lastVersionTag: String): RIO[Blocking, String] = RIO.succeed(logV)
     override def commitInfoLog(): RIO[Blocking, String] = RIO.succeed(describeV)
-    override def tag(tag: String, tagMessage: String): RIO[Blocking, Unit] = RIO.succeed(tagV)
+    override def tag(tag: String, tagMessage: String): RIO[Blocking, Unit] = RIO.unit
     override def checkGitRepo(): RIO[Blocking, Unit] = RIO.unit
   }
 

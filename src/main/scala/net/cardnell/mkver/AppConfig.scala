@@ -41,7 +41,7 @@ object BranchConfig {
     val tagMessageFormatDesc = string("tagMessageFormat").describe("")
     val preReleaseNameDesc = string("preReleaseName").describe("")
     val formatsDesc = nested("formats")(list(Format.formatDesc)).describe("custom format strings")
-    val patchesDesc = list(string("patches")).describe("Patch configs to be applied")
+    val patchesDesc = list("patches")(string).describe("Patch configs to be applied")
 
   val branchConfigDesc = (
       nameDesc.default(".*") |@|
@@ -71,7 +71,7 @@ case class PatchConfig(name: String, filePatterns: List[String], find: String, r
 object PatchConfig {
   val patchConfigDesc = (
       string("name").describe("Name of patch, referenced from branch configs") |@|
-      list(string("filePatterns").describe("Files to apply find and replace in. Supports ** and * glob patterns.")) |@|
+      list("filePatterns")(string).describe("Files to apply find and replace in. Supports ** and * glob patterns.") |@|
       string("find").describe("Regex to find in file") |@|
       string("replace").describe("Replacement string. Can include version format strings (see help)")
     )(PatchConfig.apply, PatchConfig.unapply)

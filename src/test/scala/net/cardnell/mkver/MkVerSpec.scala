@@ -2,11 +2,12 @@ package net.cardnell.mkver
 
 import java.time.LocalDate
 
-import MkVer._
-import zio.{RIO, Task}
-import zio.blocking.Blocking
+import net.cardnell.mkver.GitMock.{CheckGitRepo, CommitInfoLog}
+import net.cardnell.mkver.MkVer._
+import zio.ULayer
 import zio.test.Assertion._
 import zio.test._
+import zio.test.mock.Expectation._
 
 object VersionSpec {
   val suite1 = suite("Version")(
@@ -54,13 +55,6 @@ object MkVerSpec {
               |b3250df b3250df81f7ed389908a2aa89b32425a8ab8fb28  (tag: v0.1.0)
               |9ded7b1 9ded7b1edf3c066b8c15839304d0427b06cdd020
               |""".stripMargin
-  def fakeGit(currentBranchV: String = "", logV: String = "", commitInfoLogV: String = log, tagV: String= "") = new Git.Service {
-    override def currentBranch(): RIO[Blocking, String] = RIO.succeed(currentBranchV)
-    override def fullLog(lastVersionTag: String): RIO[Blocking, String] = RIO.succeed(logV)
-    override def commitInfoLog(): RIO[Blocking, String] = RIO.succeed(commitInfoLogV)
-    override def tag(tag: String, tagMessage: String): RIO[Blocking, Unit] = RIO.unit
-    override def checkGitRepo(): RIO[Blocking, Unit] = RIO.unit
-  }
 
   val suite1 = suite("calcBumps")(
     test("should parse correctly") {
@@ -80,7 +74,10 @@ object MkVerSpec {
 
   val suite2 = suite("getCommitInfos")(
     testM("parse commit Info Log correctly") {
-      assertM(getCommitInfos(fakeGit(), "v"))(equalTo(List(
+      val mockEnv: ULayer[Git] =
+        CommitInfoLog returns value(log)
+      val result = getCommitInfos("v").provideCustomLayer(mockEnv)
+      assertM(result)(equalTo(List(
         CommitInfo("10be55f", "10be55fc56c197f5e0159cfbfac22832b289182f", 0, List()),
         CommitInfo("f971636", "f9716367b8692ed582206951d72bc7affc150f41", 1, List()),
         CommitInfo("298326d", "298326dd43677121724e9589f390cb0279cb8708", 2, List(Version(0, 2, 0), Version(0, 3, 0))),

@@ -4,6 +4,7 @@ import zio.blocking.Blocking
 import zio.test.Assertion._
 import zio.test._
 import zio.{RIO, ZIO}
+import Main.mainImpl
 
 object EndToEndTests {
   val suite1 = suite("trunk based semver development")(
@@ -86,14 +87,15 @@ object EndToEndTests {
 
   def test[R, E, A](f: File => ZIO[R, E, A]) = {
     Files.usingTempDirectory("git-mkver") { tempDir: Path =>
-      init(tempDir.toFile()).flatMap { _ =>
-        f(tempDir.toFile())
+      init(tempDir.toFile).flatMap { _ =>
+        f(tempDir.toFile)
       }
     }
   }
 
-  def run(tempDir: File, command: String): RIO[Blocking, String] = {
-    new Main(Git.Live.git(Some(tempDir))).mainImpl(List(command))
+  def run(tempDir: File, command: String): ZIO[zio.ZEnv, Throwable, String] = {
+    // TODO provide layer with git that has different working dir
+    mainImpl(List(command)).provideCustomLayer(Blocking.live >>> Git.live(Some(tempDir)))
   }
 
   def init(tempDir: File): RIO[Blocking, Unit] = {

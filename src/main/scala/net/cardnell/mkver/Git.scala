@@ -1,27 +1,22 @@
 package net.cardnell.mkver
 
-import ProcessUtils._
-import zio.{RIO, Task}
+import net.cardnell.mkver.ProcessUtils._
 import zio.blocking.Blocking
 import zio.process.Command
-
-trait Git {
-  //val git: Git.Service
-  def git(dir: Option[File] = None): Git.Service
-}
+import zio.{Has, Layer, RIO, Task, ZIO, ZLayer}
 
 object Git {
   trait Service {
     def currentBranch(): RIO[Blocking, String]
-    def fullLog(lastVersionTag: String): RIO[Blocking, String]
+    def fullLog(fromRef: String): RIO[Blocking, String]
     def commitInfoLog(): RIO[Blocking, String]
     def tag(tag: String, tagMessage: String): RIO[Blocking, Unit]
     def checkGitRepo(): RIO[Blocking, Unit]
   }
 
-  trait Live extends Git {
-    def git(dir: Option[File] = None): Service = new Service {
-      val cwd: Option[File] = dir
+  def live(workingDir: Option[File] = None): Layer[Nothing, Has[Service]] = ZLayer.succeed(
+    new Service {
+      val cwd: Option[File] = workingDir
 
       def currentBranch(): RIO[Blocking, String] = {
         if (sys.env.contains("BUILD_SOURCEBRANCH")) {
@@ -39,8 +34,8 @@ object Git {
         exec(Array("git", "log", "--pretty=%h %H %d"), cwd).map(_.stdout)
       }
 
-      def fullLog(lastVersionTag: String): RIO[Blocking, String] = {
-        exec(s"git --no-pager log $lastVersionTag..HEAD", cwd).map(_.stdout)
+      def fullLog(fromRef: String): RIO[Blocking, String] = {
+        exec(s"git --no-pager log $fromRef..HEAD", cwd).map(_.stdout)
       }
 
       def tag(tag: String, tagMessage: String): RIO[Blocking, Unit] = {
@@ -53,8 +48,23 @@ object Git {
         }
       }
     }
-  }
-  object Live extends Live
+  )
+
+  //accessor methods
+  def currentBranch(): ZIO[Git with Blocking, Throwable, String] =
+    ZIO.accessM(_.get.currentBranch())
+
+  def fullLog(fromRef: String): ZIO[Git with Blocking, Throwable, String] =
+    ZIO.accessM(_.get.fullLog(fromRef))
+
+  def commitInfoLog(): ZIO[Git with Blocking, Throwable, String] =
+    ZIO.accessM(_.get.commitInfoLog())
+
+  def tag(tag: String, tagMessage: String): RIO[Git with Blocking, Unit] =
+    ZIO.accessM(_.get.tag(tag, tagMessage))
+
+  def checkGitRepo(): RIO[Git with Blocking, Unit] =
+    ZIO.accessM(_.get.checkGitRepo())
 }
 
 object ProcessUtils {

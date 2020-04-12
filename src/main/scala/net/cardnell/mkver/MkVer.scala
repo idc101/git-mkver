@@ -62,10 +62,10 @@ object VersionBumps {
 }
 
 object MkVer {
-  def getCommitInfos(git: Git.Service, prefix: String): RIO[Blocking, List[CommitInfo]]= {
+  def getCommitInfos(prefix: String): RIO[Git with Blocking, List[CommitInfo]]= {
     val lineMatch = "^([0-9a-f]{5,40}) ([0-9a-f]{5,40}) *(\\((.*)\\))?$".r
 
-    git.commitInfoLog().map { log =>
+    Git.commitInfoLog().map { log =>
       log.lines.zipWithIndex.flatMap {
         case (line, i) => {
           line match {
@@ -101,11 +101,11 @@ object MkVer {
     }
   }
 
-  def getNextVersion(git: Git.Service, config: BranchConfig, currentBranch: String): RIO[Blocking, VersionData] = {
+  def getNextVersion(config: BranchConfig, currentBranch: String): RIO[Git with Blocking, VersionData] = {
     for {
-      commitInfos <- getCommitInfos(git, config.prefix)
+      commitInfos <- getCommitInfos(config.prefix)
       lastVersionOpt = getLastVersion(commitInfos)
-      bumps <- getVersionBumps(git, lastVersionOpt)
+      bumps <- getVersionBumps(lastVersionOpt)
       nextVersion = lastVersionOpt.map(_.version.bump(bumps)).getOrElse(Version())
     } yield {
       VersionData(
@@ -122,12 +122,12 @@ object MkVer {
     }
   }
 
-  def getVersionBumps(git: Git.Service, lastVersion: Option[LastVersion]): RIO[Blocking, VersionBumps] = {
+  def getVersionBumps(lastVersion: Option[LastVersion]): RIO[Git with Blocking, VersionBumps] = {
     lastVersion match {
       case None => RIO.succeed(VersionBumps.minVersionBump) // No previous version
       case Some(LastVersion(_, 0, _)) => RIO.succeed(VersionBumps.none) // This commit is a version
       case Some(lv) => {
-        git.fullLog(lv.commitHash).map { log =>
+        Git.fullLog(lv.commitHash).map { log =>
           val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, VersionBumps())
           if (logBumps == VersionBumps()) {
             VersionBumps.minVersionBump

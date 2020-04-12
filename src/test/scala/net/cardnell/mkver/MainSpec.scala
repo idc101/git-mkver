@@ -1,26 +1,54 @@
 package net.cardnell.mkver
 
-import zio.{RIO, Task}
-import zio.blocking.Blocking
+import net.cardnell.mkver.GitMock.{CheckGitRepo, CommitInfoLog, CurrentBranch}
 import zio.test.Assertion.equalTo
+import zio.test.mock.Expectation._
+import zio.test.mock._
 import zio.test.{assertM, suite, testM}
+import zio.{Has, ULayer, URLayer, ZLayer}
+import Main.mainImpl
 
-object MainSpec {
-  def fakeGit(currentBranchV: String = "", logV: String = "", describeV: String = "", tagV: String= "") = new Git.Service {
-    override def currentBranch(): RIO[Blocking, String] = RIO.succeed(currentBranchV)
-    override def fullLog(lastVersionTag: String): RIO[Blocking, String] = RIO.succeed(logV)
-    override def commitInfoLog(): RIO[Blocking, String] = RIO.succeed(describeV)
-    override def tag(tag: String, tagMessage: String): RIO[Blocking, Unit] = RIO.unit
-    override def checkGitRepo(): RIO[Blocking, Unit] = RIO.unit
+// TODO >> @Mockable[Git.Service]
+object GitMock {
+  sealed trait Tag[I, A] extends Method[Git, I, A] {
+    def envBuilder: URLayer[Has[Proxy], Git] =
+      GitMock.envBuilder
   }
 
+  object CurrentBranch extends Tag[Unit, String]
+  object FullLog extends Tag[String, String]
+  object CommitInfoLog extends Tag[Unit, String]
+  object Tag extends Tag[(String, String), Unit]
+  object CheckGitRepo extends Tag[Unit, Unit]
+
+  private val envBuilder: URLayer[Has[Proxy], Git] =
+    ZLayer.fromService(invoke =>
+      new Git.Service {
+        def currentBranch() = invoke(CurrentBranch)
+        def fullLog(fromRef: String) = invoke(FullLog, fromRef)
+        def commitInfoLog() = invoke(CommitInfoLog)
+        def tag(tag: String, tagMessage: String) = invoke(Tag, tag, tagMessage)
+        def checkGitRepo() = invoke(CheckGitRepo)
+      }
+    )
+}
+
+object MainSpec {
   val suite1 = suite("main") (
     testM("next should return") {
-      val result = new Main(fakeGit("master", "", "v0.0.0-1-gabcdef")).mainImpl(List("next"))
+      val mockEnv: ULayer[Git] =
+          (CheckGitRepo returns unit) andThen
+          (CurrentBranch returns value("master")) andThen
+          (CommitInfoLog returns value("v0.0.0-1-gabcdef"))
+      val result = mainImpl(List("next")).provideCustomLayer(mockEnv)
       assertM(result)(equalTo("0.1.0"))
     },
     testM("tag should return") {
-      val result = new Main(fakeGit("master", "", "v0.0.0-1-gabcdef")).mainImpl(List("tag"))
+      val mockEnv: ULayer[Git] =
+        (CheckGitRepo returns unit) andThen
+          (CurrentBranch returns value("master")) andThen
+          (CommitInfoLog returns value("v0.0.0-1-gabcdef"))
+      val result = mainImpl(List("tag")).provideCustomLayer(mockEnv)
       assertM(result)(
         equalTo("")
       )

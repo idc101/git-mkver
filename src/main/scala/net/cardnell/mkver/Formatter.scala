@@ -1,12 +1,14 @@
 package net.cardnell.mkver
 
 object Formatter {
-  val builtInFormats = List(
-    Format("Version", "{x}.{y}.{z}"),
+  val versionFormats = List(
+    Format("Version", "{Major}.{Minor}.{Patch}"),
     Format("VersionPreRelease", "{Version}-{PreRelease}"),
     Format("VersionBuildMetaData", "{Version}+{BuildMetaData}"),
-    Format("VersionPreReleaseBuildMetaData", "{Version}-{PreRelease}+{BuildMetaData}"),
-    Format("PreRelease", "{PreReleaseName}{PreReleaseNumber}"),
+    Format("VersionPreReleaseBuildMetaData", "{Version}-{PreRelease}+{BuildMetaData}")
+  )
+  val builtInFormats = versionFormats ++ List(
+    Format("PreRelease", "{PreReleaseName}{PreReleaseNumber}")
   )
 
   case class Formatter(formats: List[Format]) {
@@ -31,23 +33,23 @@ object Formatter {
 
   def apply(version: VersionData, branchConfig: BranchConfig): Formatter = {
     Formatter(List(
-      Format("Next", "{" + branchConfig.tagFormat + "}"),
-      Format("Tag", "{pr}{" + branchConfig.tagFormat + "}"),
+      Format("Next", "{" + branchConfig.versionFormat + "}"),
+      Format("Tag", "{TagPrefix}{" + branchConfig.versionFormat + "}"),
       Format("TagMessage", branchConfig.tagMessageFormat),
       Format("PreReleaseName", branchConfig.preReleaseName),
       Format("PreReleaseNumber", ""),
-      Format("x", version.major.toString),
-      Format("y", version.minor.toString),
-      Format("z", version.patch.toString),
-      Format("br", branchNameToVariable(version.branch)),
-      Format("sh", version.commitHashShort),
-      Format("hash", version.commitHashFull),
+      Format("Major", version.major.toString),
+      Format("Minor", version.minor.toString),
+      Format("Patch", version.patch.toString),
+      Format("Branch", branchNameToVariable(version.branch)),
+      Format("ShortHash", version.commitHashShort),
+      Format("FullHash", version.commitHashFull),
       Format("dd", version.date.getDayOfMonth.formatted("00")),
       Format("mm", version.date.getMonthValue.formatted("00")),
       Format("yyyy", version.date.getYear.toString),
-      Format("bn", version.buildNo),
-      Format("tag?", branchConfig.tag.toString),
-      Format("pr", branchConfig.prefix.toString)
+      Format("BuildNo", version.buildNo),
+      Format("Tag?", branchConfig.tag.toString),
+      Format("TagPrefix", branchConfig.tagPrefix.toString)
     ) ++ AppConfig.mergeFormats(branchConfig.formats, builtInFormats)
       ++ envVariables()
       ++ azureDevOpsVariables())

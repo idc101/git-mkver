@@ -14,18 +14,23 @@ The application uses the HOCON format. More details on the specification can be 
 ## mkver.conf
 
 ```hocon
+# Versioning mode to be used in this repository
+# Can be one of SemVer | SemVerPreRelease | YearMonth | YearMonthPreRelease
+mode: SemVer
 # defaults are used if they are not overriden by a branch config
 defaults {
-  # prefix for tags in git
-  prefix: v
+  # format string to be used for versioning the repo
+  # the version must be a valid SemVer so the format must be one of:
+  # Version | VersionPreRelease | VersionBuildMetaData | VersionPreReleaseBuildMetaData
+  versionFormat: VersionBuildMetaData
   # whether to really tag the branch when `git mkver tag` is called
   tag: false
+  # prefix for tags in git
+  tagPrefix: v
   # message for annotated version tags in git
-  tagMessageFormat: "release {tag}"
-  # format string to be used for the tag in git
-  # the git tag must be a valid SemVer so the tag format must be one of:
-  # Version | VersionPreRelease | VersionBuildMetaData | VersionPreReleaseBuildMetaData
-  tagFormat: VersionBuildMetaData
+  tagMessageFormat: "release {Tag}"
+  # name of the pre-release e.g. alpha, beta, rc
+  preReleaseName: "rc"
   # list of patches to be applied when `git mkver patch` is called
   patches: [
     HelmChart
@@ -35,7 +40,7 @@ defaults {
   formats: [
     {
       name: BuildMetaData
-      format: "{br}.{sh}"
+      format: "{Branch}.{ShortHash}"
     }
     {
       name: Docker
@@ -43,7 +48,7 @@ defaults {
     }
     {
       name: DockerBranch
-      format: "{Version}.{br}.{sh}"
+      format: "{Version}.{Branch}.{ShortHash}"
     }
   ]
 }

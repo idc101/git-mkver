@@ -37,9 +37,9 @@ object MkVer {
   }
 
   def formatTag(config: BranchConfig, versionData: VersionData, formatAsTag: Boolean = true): Task[String] = {
-    val allowedFormats = Formatter.builtInFormats.map(_.name)
-    if (!allowedFormats.contains(config.tagFormat)) {
-      IO.fail(MkVerException(s"tagFormat (${config.tagFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
+    val allowedFormats = Formatter.versionFormats.map(_.name)
+    if (!allowedFormats.contains(config.versionFormat)) {
+      IO.fail(MkVerException(s"versionFormat (${config.versionFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
     } else {
       if (formatAsTag) {
         Task.effect(Formatter(versionData, config).format("{Tag}"))
@@ -51,7 +51,7 @@ object MkVer {
 
   def getNextVersion(config: BranchConfig, currentBranch: String): RIO[Git with Blocking, VersionData] = {
     for {
-      commitInfos <- getCommitInfos(config.prefix)
+      commitInfos <- getCommitInfos(config.tagPrefix)
       lastVersionOpt = getLastVersion(commitInfos)
       bumps <- getVersionBumps(lastVersionOpt)
       nextVersion = lastVersionOpt.map(_.version.bump(bumps)).getOrElse(Version())

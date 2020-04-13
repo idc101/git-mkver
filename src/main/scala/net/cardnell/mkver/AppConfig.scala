@@ -2,10 +2,26 @@ package net.cardnell.mkver
 
 import cats.implicits._
 import com.typesafe.config.ConfigFactory
-import zio.{Layer, Task, ZIO}
+import zio.Task
 import zio.config.ConfigDescriptor._
+import zio.config.PropertyType.PropertyReadError
 import zio.config._
-import zio.config.typesafe.{TypeSafeConfigSource, TypesafeConfig}
+import zio.config.typesafe.TypeSafeConfigSource
+
+sealed trait VersionMode
+case object SemVer extends VersionMode
+case object SemVerPreRelease extends VersionMode
+case object YearMonth extends VersionMode
+case object YearMonthPreRelease extends VersionMode
+
+case object VersionModeType extends PropertyType[String, VersionMode] {
+  def read(value: String): Either[PropertyReadError[String], VersionMode] =
+    value match {
+      case "SemVer" => Right(SemVer)
+      case _ => Left(PropertyReadError(value, "VersionMode"))
+    }
+  def write(value: VersionMode): String = value.toString
+}
 
 case class Format(name: String, format: String)
 object Format {
@@ -16,18 +32,18 @@ object Format {
 }
 
 case class BranchConfig(name: String,
-                        prefix: String,
+                        versionFormat: String,
                         tag: Boolean,
-                        tagFormat: String,
+                        tagPrefix: String,
                         tagMessageFormat: String,
                         preReleaseName: String,
                         formats: List[Format],
                         patches: List[String])
 
 case class BranchConfigOpt(name: String,
-                           prefix: Option[String],
+                           versionFormat: Option[String],
                            tag: Option[Boolean],
-                           tagFormat: Option[String],
+                           tagPrefix: Option[String],
                            tagMessageFormat: Option[String],
                            preReleaseName: Option[String],
                            formats: Option[List[Format]],
@@ -35,19 +51,19 @@ case class BranchConfigOpt(name: String,
 
 object BranchConfig {
     val nameDesc = string("name").describe("regex to match branch name on")
-    val prefixDesc = string("prefix").describe("prefix for git tags")
+    val versionFormatDesc = string("versionFormat").describe("the parts of the version number to be used")
     val tagDesc = boolean("tag").describe("whether to actually tag this branch when `mkver tag` is called")
-    val tagFormatDesc = string("tagFormat").describe("")
-    val tagMessageFormatDesc = string("tagMessageFormat").describe("")
-    val preReleaseNameDesc = string("preReleaseName").describe("")
+    val tagPrefixDesc = string("tagPrefix").describe("prefix for git tags")
+    val tagMessageFormatDesc = string("tagMessageFormat").describe("A format to be used in the annotated git tag message")
+    val preReleaseNameDesc = string("preReleaseName").describe("name of the pre-release. e.g. alpha, beta, rc")
     val formatsDesc = nested("formats")(list(Format.formatDesc)).describe("custom format strings")
     val patchesDesc = list("patches")(string).describe("Patch configs to be applied")
 
   val branchConfigDesc = (
       nameDesc.default(".*") |@|
-      prefixDesc.default("v") |@|
+      versionFormatDesc.default("VersionBuildMetaData") |@|
       tagDesc.default(false) |@|
-      tagFormatDesc.default("VersionBuildMetaData") |@|
+      tagPrefixDesc.default("v") |@|
       tagMessageFormatDesc.default("release {Version}") |@|
       preReleaseNameDesc.default("rc") |@|
       formatsDesc.default(Nil) |@|
@@ -56,9 +72,9 @@ object BranchConfig {
 
   val branchConfigOptDesc = (
       nameDesc |@|
-      prefixDesc.optional |@|
+      versionFormatDesc.optional |@|
       tagDesc.optional |@|
-      tagFormatDesc.optional |@|
+      tagPrefixDesc.optional |@|
       tagMessageFormatDesc.optional |@|
       preReleaseNameDesc.optional |@|
       formatsDesc.optional |@|
@@ -77,13 +93,14 @@ object PatchConfig {
     )(PatchConfig.apply, PatchConfig.unapply)
 }
 
-case class AppConfig(defaults: BranchConfig, branches: List[BranchConfigOpt], patches: List[PatchConfig])
+case class AppConfig(mode: VersionMode, defaults: BranchConfig, branches: List[BranchConfigOpt], patches: List[PatchConfig])
 
 object AppConfig {
   val appConfigDesc = (
+      nested("mode")(ConfigDescriptor.Source(ConfigSource.empty, VersionModeType) ?? "value of type uri").default(SemVer).describe("The Version Mode for this repository") |@|
       nested("defaults")(BranchConfig.branchConfigDesc) |@|
-      nested("branches")(list(BranchConfig.branchConfigOptDesc)) |@|
-      nested("patches")(list(PatchConfig.patchConfigDesc))
+      nested("branches")(list(BranchConfig.branchConfigOptDesc).default(Nil)) |@|
+      nested("patches")(list(PatchConfig.patchConfigDesc).default(Nil))
     )(AppConfig.apply, AppConfig.unapply)
 
   def getBranchConfig(configFile: Option[String], currentBranch: String): Task[BranchConfig] = {
@@ -96,9 +113,9 @@ object AppConfig {
         branchConfig.map { bc =>
           BranchConfig(
             name = bc.name,
-            prefix = bc.prefix.getOrElse(defaults.prefix),
+            versionFormat = bc.versionFormat.getOrElse(defaults.versionFormat),
             tag = bc.tag.getOrElse(defaults.tag),
-            tagFormat = bc.tagFormat.getOrElse(defaults.tagFormat),
+            tagPrefix = bc.tagPrefix.getOrElse(defaults.tagPrefix),
             tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
             preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
             formats = mergeFormats(defaults.formats, bc.formats.getOrElse(Nil)),

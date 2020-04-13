@@ -27,12 +27,12 @@ object FormatterSpec extends DefaultRunnableSpec {
     },
     test("should format default variables") {
       val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now(), "56")
-      val branchConfig = BranchConfig(".*", "v", true, "Version", "release {Version}", "RC", Nil, Nil)
+      val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", Nil, Nil)
       val formatter = Formatter(versionData, branchConfig)
-      assert(formatter.format("{x}"))(equalTo("1")) &&
-        assert(formatter.format("{y}"))(equalTo("2")) &&
-        assert(formatter.format("{z}"))(equalTo("3")) &&
-        assert(formatter.format("{br}"))(equalTo("feature-f1"))
+      assert(formatter.format("{Major}"))(equalTo("1")) &&
+        assert(formatter.format("{Minor}"))(equalTo("2")) &&
+        assert(formatter.format("{Patch}"))(equalTo("3")) &&
+        assert(formatter.format("{Branch}"))(equalTo("feature-f1"))
         //assert(formatter.format("{env.HOME}"))(equalTo("???")) - How to make this os agnostic?
     }
   )

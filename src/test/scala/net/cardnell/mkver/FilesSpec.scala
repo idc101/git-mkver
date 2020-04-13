@@ -4,6 +4,7 @@ import zio.test.Assertion.equalTo
 import zio.test.{DefaultRunnableSpec, assertM, suite, testM}
 
 object FilesSpec extends DefaultRunnableSpec {
+  val fs = java.io.File.separator
 
   def spec = suite("Files")(
     testM("format should replace variables") {
@@ -31,7 +32,7 @@ object FilesSpec extends DefaultRunnableSpec {
         files <- Files.glob(p, "**/*.sbt")
         list = files.map(_.path.toString)
       } yield list
-      assertM(result)(equalTo(List("project/plugins.sbt")))
+      assertM(result)(equalTo(List(s"project${fs}plugins.sbt")))
     },
     testM("glob wildcard in all directories") {
       val result = for {
@@ -39,7 +40,7 @@ object FilesSpec extends DefaultRunnableSpec {
         files <- Files.glob(p, "***.sbt")
         list = files.map(_.path.toString)
       } yield list
-      assertM(result)(equalTo(List("project/plugins.sbt", "build.sbt")))
+      assertM(result)(equalTo(List(s"project${fs}plugins.sbt", "build.sbt")))
     },
   )
 }

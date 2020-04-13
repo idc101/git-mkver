@@ -55,8 +55,8 @@ object MkVerSpec extends DefaultRunnableSpec {
     ),
     suite("formatTag")(
       testM("should format tag") {
-        val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now(), "56")
-        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", List(Format("Version", "{x}.{y}.{z}")), Nil)
+        val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now())
+        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
         assertM(formatTag(branchConfig, versionData))(equalTo("v1.2.3"))
       }
     )

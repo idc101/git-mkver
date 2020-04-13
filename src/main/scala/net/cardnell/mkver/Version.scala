@@ -49,5 +49,4 @@ case class VersionData(major: Int,
                        branch: String,
                        commitHashShort: String,
                        commitHashFull: String,
-                       date: LocalDate,
-                       buildNo: String)
+                       date: LocalDate)

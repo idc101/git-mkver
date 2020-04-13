@@ -17,7 +17,7 @@ The following built in formats conform to the SemVer spec. They cannot be overri
 
 | Format Token  | Substitution  |
 | ------------- | ------------- |
-| `Version` | `{x}.{y}.{z}` |
+| `Version` | `{Major}.{Minor}.{Patch}` |
 | `VersionPreRelease` | `{Version}-{PreRelease}` |
 | `VersionBuildMetaData` | `{Version}+{BuildMetaData}` |
 | `VersionPreReleaseBuildMetaData` | `{Version}-{PreRelease}+{BuildMetaData}` |
@@ -30,18 +30,21 @@ The following built in formats conform to the SemVer spec. They cannot be overri
 | `Next` | Full Semantic Version |
 | `Tag` | Full Semantic Version as a tag (includes the prefix) |
 | `TagMessage` | Tag Message |
-| `x` | Version major number |
-| `z` | Version patch number |
-| `y` | Version minor number |
-| `br` | Branch name |
-| `sh` | Short Hash |
-| `hash` | Full Hash |
+| `Major` | Version major number |
+| `Minor` | Version nimor number |
+| `Patch` | Version patch number |
+| `Branch` | Branch name |
+| `ShortHash` | Short Hash |
+| `FullHash` | Full Hash |
 | `dd` | Day |
 | `mm` | Month |
 | `yyyy` | Year |
-| `bn` | Build No from build system |
-| `tag?` | `true` if this branch is allowed to be tagged; `false` otherwise |
-| `pr` | Tag prefix |
+| `Tag?` | `true` if this branch is allowed to be tagged; `false` otherwise |
+| `Prefix` | Tag prefix |
 | `env.XXXX` | Environment Variables |
 
 ### Environment Variables
+
+All environment variables are available under a set of formats prefixed with `env.`.
+For example `{env.BUILD_NUMBER}` would get the `BUILD_NUMBER` environment variable.
+This is most useful for getting information from build systems.

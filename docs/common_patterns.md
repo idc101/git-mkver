@@ -9,7 +9,7 @@ Overview:
 - All releases are done from the master branch.
 - Only the master branch is tagged
 - Release Candidates are not used
--  Any version number not from master includes build metadata to indicate it is not an official release.
+- Any version number not from master includes build metadata to indicate it is not an official release.
 
 ### Controlling the next version number
 

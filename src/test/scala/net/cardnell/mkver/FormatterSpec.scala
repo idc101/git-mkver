@@ -26,7 +26,7 @@ object FormatterSpec extends DefaultRunnableSpec {
       assert(Formatter.branchNameToVariable("refs/heads/feat/f1"))(equalTo("feat-f1"))
     },
     test("should format default variables") {
-      val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now(), "56")
+      val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now())
       val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", Nil, Nil)
       val formatter = Formatter(versionData, branchConfig)
       assert(formatter.format("{Major}"))(equalTo("1")) &&

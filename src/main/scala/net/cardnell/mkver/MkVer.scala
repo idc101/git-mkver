@@ -64,8 +64,7 @@ object MkVer {
         branch = currentBranch,
         commitHashShort = commitInfos.headOption.map(_.shortHash).getOrElse(""),
         commitHashFull = commitInfos.headOption.map(_.fullHash).getOrElse(""),
-        date = LocalDate.now(),
-        buildNo = sys.env.getOrElse("BUILD_BUILDNUMBER", "TODO")
+        date = LocalDate.now()
       )
     }
   }

@@ -47,7 +47,6 @@ object Formatter {
       Format("dd", version.date.getDayOfMonth.formatted("00")),
       Format("mm", version.date.getMonthValue.formatted("00")),
       Format("yyyy", version.date.getYear.toString),
-      Format("BuildNo", version.buildNo),
       Format("Tag?", branchConfig.tag.toString),
       Format("TagPrefix", branchConfig.tagPrefix.toString)
     ) ++ AppConfig.mergeFormats(branchConfig.formats, builtInFormats)

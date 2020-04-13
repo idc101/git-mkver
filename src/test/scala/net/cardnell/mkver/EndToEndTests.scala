@@ -6,8 +6,8 @@ import zio.test._
 import zio.{RIO, ZIO}
 import Main.mainImpl
 
-object EndToEndTests {
-  val suite1 = suite("trunk based semver development")(
+object EndToEndTests extends DefaultRunnableSpec {
+  def spec = suite("trunk based semver development")(
     testM("no tags should return version 0.1.0") {
       val result = test { tempDir =>
         for {

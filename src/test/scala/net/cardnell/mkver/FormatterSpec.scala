@@ -3,11 +3,11 @@ package net.cardnell.mkver
 import java.time.LocalDate
 
 import zio.test.Assertion.equalTo
-import zio.test.{assert, suite, test}
+import zio.test.{DefaultRunnableSpec, assert, suite, test}
 
-object FormatterSpec {
+object FormatterSpec extends DefaultRunnableSpec {
 
-  val suite1 = suite("formatter")(
+  def spec = suite("FormatterSpec")(
     test("format should replace variables") {
       val formatter = Formatter.Formatter(List(
         Format("a", "1"),

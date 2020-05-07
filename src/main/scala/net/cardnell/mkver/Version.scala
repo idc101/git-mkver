@@ -35,10 +35,10 @@ case class VersionBumps(major: Boolean = false, minor: Boolean = false, patch: B
   def bumpMinor(): VersionBumps = this.copy(minor = true)
   def bumpPatch(): VersionBumps = this.copy(patch = true)
   def bumpCommits(): VersionBumps = this.copy(commitCount = this.commitCount + 1)
-}
+  def noValidCommitMessages(): Boolean = { !major && !minor && !patch }
+  }
 
 object VersionBumps {
-  val minVersionBump = VersionBumps(major = false, minor = true, patch = false)
   val none = VersionBumps()
 }
 

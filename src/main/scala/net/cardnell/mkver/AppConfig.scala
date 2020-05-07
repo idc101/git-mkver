@@ -4,23 +4,42 @@ import cats.implicits._
 import com.typesafe.config.ConfigFactory
 import zio.Task
 import zio.config.ConfigDescriptor._
-import zio.config.PropertyType.PropertyReadError
 import zio.config._
-import zio.config.typesafe.TypeSafeConfigSource
+import zio.config.typesafe.TypesafeConfigSource
 
 sealed trait VersionMode
-case object SemVer extends VersionMode
-case object SemVerPreRelease extends VersionMode
-case object YearMonth extends VersionMode
-case object YearMonthPreRelease extends VersionMode
 
-case object VersionModeType extends PropertyType[String, VersionMode] {
-  def read(value: String): Either[PropertyReadError[String], VersionMode] =
+object VersionMode {
+  case object SemVer extends VersionMode
+  case object SemVerPreRelease extends VersionMode
+  case object YearMonth extends VersionMode
+  case object YearMonthPreRelease extends VersionMode
+
+  def read(value: String): Either[String, VersionMode] =
     value match {
       case "SemVer" => Right(SemVer)
-      case _ => Left(PropertyReadError(value, "VersionMode"))
+      case _ => Left("VersionMode must be one of: ")
     }
-  def write(value: VersionMode): String = value.toString
+}
+
+sealed trait WhenNoValidCommitMessages
+
+object WhenNoValidCommitMessages {
+  case object Fail extends WhenNoValidCommitMessages
+  case object IncrementMajor extends WhenNoValidCommitMessages
+  case object IncrementMinor extends WhenNoValidCommitMessages
+  case object IncrementPatch extends WhenNoValidCommitMessages
+  case object NoIncrement extends WhenNoValidCommitMessages
+
+  def read(value: String): Either[String, WhenNoValidCommitMessages] =
+    value match {
+      case "Fail" => Right(Fail)
+      case "IncrementMajor" => Right(IncrementMajor)
+      case "IncrementMinor" => Right(IncrementMinor)
+      case "IncrementPatch" => Right(IncrementPatch)
+      case "NoIncrement" => Right(NoIncrement)
+      case _ => Left("WhenNoValidCommitMessages should be one of Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
+    }
 }
 
 case class Format(name: String, format: String)
@@ -37,6 +56,7 @@ case class BranchConfig(name: String,
                         tagPrefix: String,
                         tagMessageFormat: String,
                         preReleaseName: String,
+                        whenNoValidCommitMessages: WhenNoValidCommitMessages,
                         formats: List[Format],
                         patches: List[String])
 
@@ -46,6 +66,7 @@ case class BranchConfigOpt(name: String,
                            tagPrefix: Option[String],
                            tagMessageFormat: Option[String],
                            preReleaseName: Option[String],
+                           whenNoValidCommitMessages: Option[WhenNoValidCommitMessages],
                            formats: Option[List[Format]],
                            patches: Option[List[String]])
 
@@ -56,6 +77,9 @@ object BranchConfig {
     val tagPrefixDesc = string("tagPrefix").describe("prefix for git tags")
     val tagMessageFormatDesc = string("tagMessageFormat").describe("A format to be used in the annotated git tag message")
     val preReleaseNameDesc = string("preReleaseName").describe("name of the pre-release. e.g. alpha, beta, rc")
+    val whenNoValidCommitMessages = string("whenNoValidCommitMessages")
+      .xmapEither(WhenNoValidCommitMessages.read, (output: WhenNoValidCommitMessages) => Right(output.toString))
+      .describe("behaviour if no valid commit messages are found Fail|IncrementMajor|IncrementMinor|IncrementPatch")
     val formatsDesc = nested("formats")(list(Format.formatDesc)).describe("custom format strings")
     val patchesDesc = list("patches")(string).describe("Patch configs to be applied")
 
@@ -66,6 +90,7 @@ object BranchConfig {
       tagPrefixDesc.default("v") |@|
       tagMessageFormatDesc.default("release {Version}") |@|
       preReleaseNameDesc.default("rc") |@|
+      whenNoValidCommitMessages.default(WhenNoValidCommitMessages.IncrementMinor) |@|
       formatsDesc.default(Nil) |@|
       patchesDesc.default(Nil)
     )(BranchConfig.apply, BranchConfig.unapply)
@@ -77,6 +102,7 @@ object BranchConfig {
       tagPrefixDesc.optional |@|
       tagMessageFormatDesc.optional |@|
       preReleaseNameDesc.optional |@|
+      whenNoValidCommitMessages.optional |@|
       formatsDesc.optional |@|
       patchesDesc.optional
     )(BranchConfigOpt.apply, BranchConfigOpt.unapply)
@@ -97,7 +123,8 @@ case class AppConfig(mode: VersionMode, defaults: BranchConfig, branches: List[B
 
 object AppConfig {
   val appConfigDesc = (
-      nested("mode")(ConfigDescriptor.Source(ConfigSource.empty, VersionModeType) ?? "value of type uri").default(SemVer).describe("The Version Mode for this repository") |@|
+      string("mode").xmapEither(VersionMode.read, (output: VersionMode) => Right(output.toString))
+        .describe("The Version Mode for this repository") |@|
       nested("defaults")(BranchConfig.branchConfigDesc) |@|
       nested("branches")(list(BranchConfig.branchConfigOptDesc).default(Nil)) |@|
       nested("patches")(list(PatchConfig.patchConfigDesc).default(Nil))
@@ -118,6 +145,7 @@ object AppConfig {
             tagPrefix = bc.tagPrefix.getOrElse(defaults.tagPrefix),
             tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
             preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
+            whenNoValidCommitMessages = bc.whenNoValidCommitMessages.getOrElse(defaults.whenNoValidCommitMessages),
             formats = mergeFormats(defaults.formats, bc.formats.getOrElse(Nil)),
             patches = bc.patches.getOrElse(defaults.patches)
           )
@@ -169,11 +197,11 @@ object AppConfig {
 
     file.flatMap { of =>
       of.map { f =>
-        TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(f)))
+        TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(f)))
         // TODO Use this?
         //TypesafeConfig.fromHoconFile(new java.io.File(c), AppConfig.appConfigDesc)
       }.getOrElse {
-        TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
+        TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
       }.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
     }.flatMap { source: ConfigSource[String, String] =>
       read(AppConfig.appConfigDesc from source) match {
@@ -184,7 +212,7 @@ object AppConfig {
   }
 
   def getReferenceConfig: Task[AppConfig] = {
-    val source = TypeSafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
+    val source = TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
     source.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
       .flatMap { source: ConfigSource[String, String] =>
       read(AppConfig.appConfigDesc from source) match {

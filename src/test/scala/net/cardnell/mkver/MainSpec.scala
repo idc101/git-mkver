@@ -1,6 +1,6 @@
 package net.cardnell.mkver
 
-import net.cardnell.mkver.GitMock.{CheckGitRepo, CommitInfoLog, CurrentBranch}
+import net.cardnell.mkver.GitMock._
 import zio.test.Assertion.equalTo
 import zio.test.mock.Expectation._
 import zio.test.mock._
@@ -16,7 +16,7 @@ object GitMock {
   }
 
   object CurrentBranch extends Tag[Unit, String]
-  object FullLog extends Tag[String, String]
+  object FullLog extends Tag[Option[String], String]
   object CommitInfoLog extends Tag[Unit, String]
   object Tag extends Tag[(String, String), Unit]
   object CheckGitRepo extends Tag[Unit, Unit]
@@ -25,7 +25,7 @@ object GitMock {
     ZLayer.fromService(invoke =>
       new Git.Service {
         def currentBranch() = invoke(CurrentBranch)
-        def fullLog(fromRef: String) = invoke(FullLog, fromRef)
+        def fullLog(fromRef: Option[String]) = invoke(FullLog, fromRef)
         def commitInfoLog() = invoke(CommitInfoLog)
         def tag(tag: String, tagMessage: String) = invoke(Tag, tag, tagMessage)
         def checkGitRepo() = invoke(CheckGitRepo)
@@ -40,7 +40,8 @@ object MainSpec extends DefaultRunnableSpec {
         val mockEnv: ULayer[Git] =
           (CheckGitRepo returns unit) andThen
             (CurrentBranch returns value("master")) andThen
-            (CommitInfoLog returns value("v0.0.0-1-gabcdef"))
+            (CommitInfoLog returns value("")) andThen
+            (FullLog(equalTo(None)) returns value(""))
         val result = mainImpl(List("next")).provideCustomLayer(mockEnv)
         assertM(result)(equalTo("0.1.0"))
       },
@@ -48,7 +49,8 @@ object MainSpec extends DefaultRunnableSpec {
         val mockEnv: ULayer[Git] =
           (CheckGitRepo returns unit) andThen
             (CurrentBranch returns value("master")) andThen
-            (CommitInfoLog returns value("v0.0.0-1-gabcdef"))
+            (CommitInfoLog returns value("")) andThen
+            (FullLog(equalTo(None)) returns value(""))
         val result = mainImpl(List("tag")).provideCustomLayer(mockEnv)
         assertM(result)(
           equalTo("")

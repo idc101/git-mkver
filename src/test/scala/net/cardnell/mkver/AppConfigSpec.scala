@@ -28,8 +28,8 @@ object AppConfigSpec extends DefaultRunnableSpec {
       }
     ),
     suite("mergeFormat")(
-      testM("should merge formats") {
-        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", Nil, Nil)
+      testM("should merge formats on real config") {
+        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", WhenNoValidCommitMessages.IncrementMinor, Nil, Nil)
         assertM(AppConfig.getPatchConfigs(None, branchConfig))(equalTo(Nil))
       }
     )

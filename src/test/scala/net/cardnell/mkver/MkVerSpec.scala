@@ -4,7 +4,7 @@ import java.time.LocalDate
 
 import net.cardnell.mkver.GitMock.{CheckGitRepo, CommitInfoLog}
 import net.cardnell.mkver.MkVer._
-import zio.ULayer
+import zio.{Cause, ULayer}
 import zio.test.Assertion._
 import zio.test._
 import zio.test.mock.Expectation._
@@ -56,8 +56,28 @@ object MkVerSpec extends DefaultRunnableSpec {
     suite("formatTag")(
       testM("should format tag") {
         val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now())
-        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
+        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", WhenNoValidCommitMessages.IncrementMinor, List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
         assertM(formatTag(branchConfig, versionData))(equalTo("v1.2.3"))
+      }
+    ),
+    suite("getFallbackVersionBumps")(
+      testM("should fail") {
+        for {
+          result <- getFallbackVersionBumps(WhenNoValidCommitMessages.Fail, VersionBumps()).run
+        } yield
+          assert(result)(fails(equalTo(MkVerException("No valid commit messages found describing version increment"))))
+      },
+      testM("should bump major") {
+        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.IncrementMajor, VersionBumps()))(equalTo(VersionBumps(major = true)))
+      },
+      testM("should bump minor") {
+        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.IncrementMinor, VersionBumps()))(equalTo(VersionBumps(minor = true)))
+      },
+      testM("should bump patch") {
+        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.IncrementPatch, VersionBumps()))(equalTo(VersionBumps(patch = true)))
+      },
+      testM("should bump none") {
+        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.NoIncrement, VersionBumps()))(equalTo(VersionBumps()))
       }
     )
   )

@@ -8,7 +8,7 @@ import zio.{Has, Layer, RIO, Task, ZIO, ZLayer}
 object Git {
   trait Service {
     def currentBranch(): RIO[Blocking, String]
-    def fullLog(fromRef: String): RIO[Blocking, String]
+    def fullLog(fromRef: Option[String]): RIO[Blocking, String]
     def commitInfoLog(): RIO[Blocking, String]
     def tag(tag: String, tagMessage: String): RIO[Blocking, Unit]
     def checkGitRepo(): RIO[Blocking, Unit]
@@ -34,8 +34,9 @@ object Git {
         exec(Array("git", "log", "--pretty=%h %H %d"), cwd).map(_.stdout)
       }
 
-      def fullLog(fromRef: String): RIO[Blocking, String] = {
-        exec(s"git --no-pager log $fromRef..HEAD", cwd).map(_.stdout)
+      def fullLog(fromRef: Option[String]): RIO[Blocking, String] = {
+        val refRange = fromRef.map(r => Array(s"$r..HEAD")).getOrElse(Array())
+        exec(Array("git", "--no-pager", "log") ++ refRange, cwd).map(_.stdout)
       }
 
       def tag(tag: String, tagMessage: String): RIO[Blocking, Unit] = {
@@ -54,7 +55,7 @@ object Git {
   def currentBranch(): ZIO[Git with Blocking, Throwable, String] =
     ZIO.accessM(_.get.currentBranch())
 
-  def fullLog(fromRef: String): ZIO[Git with Blocking, Throwable, String] =
+  def fullLog(fromRef: Option[String]): ZIO[Git with Blocking, Throwable, String] =
     ZIO.accessM(_.get.fullLog(fromRef))
 
   def commitInfoLog(): ZIO[Git with Blocking, Throwable, String] =

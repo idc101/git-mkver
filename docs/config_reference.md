@@ -31,6 +31,14 @@ defaults {
   tagMessageFormat: "release {Tag}"
   # name of the pre-release e.g. alpha, beta, rc
   preReleaseName: "rc"
+  # action to take if after analyzing all commit messages since the last tag
+  # no increment instructions can be found. Options are:
+  # * Fail - application will exit
+  # * IncrementMajor - bump the major version
+  # * IncrementMinor - bump the minor version
+  # * IncrementPatch - bump the patch version
+  # * NoIncrement - no version change will occur
+  whenNoValidCommitMessages: "IncrementMinor"
   # list of patches to be applied when `git mkver patch` is called
   patches: [
     HelmChart

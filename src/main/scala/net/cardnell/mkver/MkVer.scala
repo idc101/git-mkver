@@ -53,7 +53,7 @@ object MkVer {
     for {
       commitInfos <- getCommitInfos(config.tagPrefix)
       lastVersionOpt = getLastVersion(commitInfos)
-      bumps <- getVersionBumps(lastVersionOpt)
+      bumps <- getVersionBumps(lastVersionOpt, config.whenNoValidCommitMessages)
       nextVersion = lastVersionOpt.map(_.version.bump(bumps)).getOrElse(Version())
     } yield {
       VersionData(
@@ -69,22 +69,31 @@ object MkVer {
     }
   }
 
-  def getVersionBumps(lastVersion: Option[LastVersion]): RIO[Git with Blocking, VersionBumps] = {
-    lastVersion match {
-      case None => RIO.succeed(VersionBumps.minVersionBump) // No previous version
-      case Some(LastVersion(_, 0, _)) => RIO.succeed(VersionBumps.none) // This commit is a version
-      case Some(lv) => {
-        Git.fullLog(lv.commitHash).map { log =>
-          val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, VersionBumps())
-          if (logBumps == VersionBumps()) {
-            VersionBumps.minVersionBump
-          } else {
-            logBumps
-          }
-        }
+  def getVersionBumps(lastVersion: Option[LastVersion], whenNoValidCommitMessages: WhenNoValidCommitMessages): RIO[Git with Blocking, VersionBumps] = {
+    def logToBumps(log: String): IO[MkVerException, VersionBumps] = {
+      val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, VersionBumps())
+      if (logBumps.noValidCommitMessages()) {
+        getFallbackVersionBumps(whenNoValidCommitMessages, logBumps)
+      } else {
+        RIO.succeed(logBumps)
       }
     }
 
+    lastVersion match {
+      case None => Git.fullLog(None).flatMap(logToBumps) // No previous version
+      case Some(LastVersion(_, 0, _)) => RIO.succeed(VersionBumps.none) // This commit is a version
+      case Some(lv) => Git.fullLog(Some(lv.commitHash)).flatMap(logToBumps)
+    }
+  }
+
+  def getFallbackVersionBumps(whenNoValidCommitMessages: WhenNoValidCommitMessages, logBumps: VersionBumps): IO[MkVerException, VersionBumps] = {
+    whenNoValidCommitMessages match {
+      case WhenNoValidCommitMessages.Fail => IO.fail(MkVerException("No valid commit messages found describing version increment"))
+      case WhenNoValidCommitMessages.IncrementMajor => IO.succeed(logBumps.bumpMajor())
+      case WhenNoValidCommitMessages.IncrementMinor => IO.succeed(logBumps.bumpMinor())
+      case WhenNoValidCommitMessages.IncrementPatch => IO.succeed(logBumps.bumpPatch())
+      case WhenNoValidCommitMessages.NoIncrement => IO.succeed(logBumps)
+    }
   }
 
   def calcBumps(lines: List[String], bumps: VersionBumps): VersionBumps = {
@@ -99,7 +108,7 @@ object MkVer {
     } else {
       val line = lines.head
       if (line.startsWith("commit")) {
-        calcBumps(lines.tail, bumps.bumpPatch())
+        calcBumps(lines.tail, bumps.bumpCommits())
       } else if (line.startsWith("    ")) {
         if (major.findFirstIn(line).nonEmpty || breaking.findFirstIn(line).nonEmpty) {
           calcBumps(lines.tail, bumps.bumpMajor())

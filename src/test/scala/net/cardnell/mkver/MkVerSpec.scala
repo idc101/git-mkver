@@ -20,20 +20,39 @@ object MkVerSpec extends DefaultRunnableSpec {
               |9ded7b1 9ded7b1edf3c066b8c15839304d0427b06cdd020
               |""".stripMargin
 
+  val fullLog = """commit 6540bf8d6ac8ade4fc82ac8d73ba4e2739a1440a
+                  |Author: Mona Lisa <mona.lisa@email.org>
+                  |Date:   Tue May 19 18:25:04 2020 +1000
+                  |
+                  |    fix: code1.py""".stripMargin
+
+  val commitMessageActions = List(
+    CommitMessageAction("BREAKING CHANGE", IncrementAction.IncrementMajor),
+    CommitMessageAction("major(\\(.+\\))?:", IncrementAction.IncrementMajor),
+    CommitMessageAction("minor(\\(.+\\))?:", IncrementAction.IncrementMinor),
+    CommitMessageAction("patch(\\(.+\\))?:", IncrementAction.IncrementPatch),
+    CommitMessageAction("feat(\\(.+\\))?:", IncrementAction.IncrementMinor),
+    CommitMessageAction("fix(\\(.+\\))?:", IncrementAction.IncrementPatch)
+  )
+
   def spec = suite("MkVerSpec")(
     suite("calcBumps")(
       test("should parse correctly") {
-        assert(calcBumps(List("    major: change"), VersionBumps()))(equalTo(VersionBumps(major = true))) &&
-          assert(calcBumps(List("    feat: change", "    BREAKING CHANGE"), VersionBumps()))(equalTo(VersionBumps(major = true, minor = true))) &&
-          assert(calcBumps(List("    feat: change"), VersionBumps()))(equalTo(VersionBumps(minor = true))) &&
-          assert(calcBumps(List("    fix: change"), VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
-          assert(calcBumps(List("    patch: change"), VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
-          assert(calcBumps(List("    major(a component): change"), VersionBumps()))(equalTo(VersionBumps(major = true))) &&
-          assert(calcBumps(List("    feat(a component): change", "    BREAKING CHANGE"), VersionBumps()))(equalTo(VersionBumps(major = true, minor = true))) &&
-          assert(calcBumps(List("    feat(a component): change"), VersionBumps()))(equalTo(VersionBumps(minor = true))) &&
-          assert(calcBumps(List("    fix(a component): change"), VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
-          assert(calcBumps(List("    patch(a component): change"), VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
-          assert(calcBumps(List("    some random commit"), VersionBumps()))(equalTo(VersionBumps()))
+          assert(calcBumps(List("    major: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true))) &&
+          assert(calcBumps(List("    feat: change", "    BREAKING CHANGE"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true, minor = true))) &&
+          assert(calcBumps(List("    feat: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(minor = true))) &&
+          assert(calcBumps(List("    fix: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
+          assert(calcBumps(List("    patch: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
+          assert(calcBumps(List("    major(a component): change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true))) &&
+          assert(calcBumps(List("    feat(a component): change", "    BREAKING CHANGE"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true, minor = true))) &&
+          assert(calcBumps(List("    feat(a component): change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(minor = true))) &&
+          assert(calcBumps(List("    fix(a component): change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
+          assert(calcBumps(List("    patch(a component): change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
+          assert(calcBumps(List("    some random commit"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps())) &&
+          assert(calcBumps(List("    Merged PR: feat: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(minor = true)))
+      },
+      test("should parse real log") {
+        assert(calcBumps(fullLog.linesIterator.toList, commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true, commitCount = 1)))
       }
     ),
     suite("getCommitInfos")(
@@ -56,28 +75,28 @@ object MkVerSpec extends DefaultRunnableSpec {
     suite("formatTag")(
       testM("should format tag") {
         val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now())
-        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", WhenNoValidCommitMessages.IncrementMinor, List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
-        assertM(formatTag(branchConfig, versionData))(equalTo("v1.2.3"))
+        val runConfig = RunConfig(".*", "Version", true, "v", "release {Version}", "RC", commitMessageActions, IncrementAction.IncrementMinor, List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
+        assertM(formatTag(runConfig, versionData))(equalTo("v1.2.3"))
       }
     ),
     suite("getFallbackVersionBumps")(
       testM("should fail") {
         for {
-          result <- getFallbackVersionBumps(WhenNoValidCommitMessages.Fail, VersionBumps()).run
+          result <- getFallbackVersionBumps(IncrementAction.Fail, VersionBumps()).run
         } yield
           assert(result)(fails(equalTo(MkVerException("No valid commit messages found describing version increment"))))
       },
       testM("should bump major") {
-        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.IncrementMajor, VersionBumps()))(equalTo(VersionBumps(major = true)))
+        assertM(getFallbackVersionBumps(IncrementAction.IncrementMajor, VersionBumps()))(equalTo(VersionBumps(major = true)))
       },
       testM("should bump minor") {
-        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.IncrementMinor, VersionBumps()))(equalTo(VersionBumps(minor = true)))
+        assertM(getFallbackVersionBumps(IncrementAction.IncrementMinor, VersionBumps()))(equalTo(VersionBumps(minor = true)))
       },
       testM("should bump patch") {
-        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.IncrementPatch, VersionBumps()))(equalTo(VersionBumps(patch = true)))
+        assertM(getFallbackVersionBumps(IncrementAction.IncrementPatch, VersionBumps()))(equalTo(VersionBumps(patch = true)))
       },
       testM("should bump none") {
-        assertM(getFallbackVersionBumps(WhenNoValidCommitMessages.NoIncrement, VersionBumps()))(equalTo(VersionBumps()))
+        assertM(getFallbackVersionBumps(IncrementAction.NoIncrement, VersionBumps()))(equalTo(VersionBumps()))
       }
     )
   )

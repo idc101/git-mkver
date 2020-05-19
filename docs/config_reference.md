@@ -103,4 +103,23 @@ patches: [
     replace: "<Version>{Version}</Version>"
   }
 ]
+# commitMessageActions configures how different commit messages will increment
+# the version number
+commitMessageActions: [
+  {
+    # pattern is a regular expression to occur in a single line
+    pattern: "BREAKING CHANGE"
+    # action is one of:
+    # * Fail - application will exit
+    # * IncrementMajor - bump the major version
+    # * IncrementMinor - bump the minor version
+    # * IncrementPatch - bump the patch version
+    # * NoIncrement - no version change will occur
+    action: IncrementMajor
+  }
+  {
+    pattern: "major(\\(.+\\))?:"
+    action: IncrementMajor
+  }
+]
 ```

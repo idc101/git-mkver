@@ -7,13 +7,13 @@ object AppConfigSpec extends DefaultRunnableSpec {
   def spec = suite("AppConfigSpec") (
     suite("getBranchConfig") (
       testM("master should return master config") {
-        assertM(AppConfig.getBranchConfig(None, "master"))(
+        assertM(AppConfig.getRunConfig(None, "master"))(
           hasField("name", _.name, equalTo("master"))
         )
       },
       testM("feat should return .* config") {
-        assertM(AppConfig.getBranchConfig(None, "feat"))(
-          hasField("name", (c:BranchConfig) => c.name, equalTo(".*")) &&
+        assertM(AppConfig.getRunConfig(None, "feat"))(
+          hasField("name", (c: RunConfig) => c.name, equalTo(".*")) &&
             hasField("formats", _.formats, contains(Format("BuildMetaData", "{Branch}.{ShortHash}")))
         )
       }
@@ -29,8 +29,7 @@ object AppConfigSpec extends DefaultRunnableSpec {
     ),
     suite("mergeFormat")(
       testM("should merge formats on real config") {
-        val branchConfig = BranchConfig(".*", "Version", true, "v", "release {Version}", "RC", WhenNoValidCommitMessages.IncrementMinor, Nil, Nil)
-        assertM(AppConfig.getPatchConfigs(None, branchConfig))(equalTo(Nil))
+        assertM(AppConfig.getRunConfig(None, "master").map(_.formats))(equalTo(List(Format("BuildMetaData","{Branch}.{ShortHash}"))))
       }
     )
   )

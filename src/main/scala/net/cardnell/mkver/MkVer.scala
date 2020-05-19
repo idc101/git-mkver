@@ -10,11 +10,11 @@ object MkVer {
 
   case class LastVersion(commitHash: String, commitsBeforeHead: Int, version: Version)
 
-  def getCommitInfos(prefix: String): RIO[Git with Blocking, List[CommitInfo]]= {
+  def getCommitInfos(prefix: String): RIO[Git with Blocking, List[CommitInfo]] = {
     val lineMatch = "^([0-9a-f]{5,40}) ([0-9a-f]{5,40}) *(\\((.*)\\))?$".r
 
     Git.commitInfoLog().map { log =>
-      log.lines.zipWithIndex.flatMap {
+      log.linesIterator.zipWithIndex.flatMap {
         case (line, i) => {
           line match {
             case lineMatch(shortHash, longHash, _, names) => {
@@ -36,7 +36,7 @@ object MkVer {
     commitInfos.find(_.tags.nonEmpty).map(ci => LastVersion(ci.fullHash, ci.commitsBeforeHead, ci.tags.head))
   }
 
-  def formatTag(config: BranchConfig, versionData: VersionData, formatAsTag: Boolean = true): Task[String] = {
+  def formatTag(config: RunConfig, versionData: VersionData, formatAsTag: Boolean = true): Task[String] = {
     val allowedFormats = Formatter.versionFormats.map(_.name)
     if (!allowedFormats.contains(config.versionFormat)) {
       IO.fail(MkVerException(s"versionFormat (${config.versionFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
@@ -49,11 +49,11 @@ object MkVer {
     }
   }
 
-  def getNextVersion(config: BranchConfig, currentBranch: String): RIO[Git with Blocking, VersionData] = {
+  def getNextVersion(config: RunConfig, currentBranch: String): RIO[Git with Blocking, VersionData] = {
     for {
       commitInfos <- getCommitInfos(config.tagPrefix)
       lastVersionOpt = getLastVersion(commitInfos)
-      bumps <- getVersionBumps(lastVersionOpt, config.whenNoValidCommitMessages)
+      bumps <- getVersionBumps(lastVersionOpt, config.commitMessageActions, config.whenNoValidCommitMessages)
       nextVersion = lastVersionOpt.map(_.version.bump(bumps)).getOrElse(Version())
     } yield {
       VersionData(
@@ -69,9 +69,11 @@ object MkVer {
     }
   }
 
-  def getVersionBumps(lastVersion: Option[LastVersion], whenNoValidCommitMessages: WhenNoValidCommitMessages): RIO[Git with Blocking, VersionBumps] = {
+  def getVersionBumps(lastVersion: Option[LastVersion],
+                      commitMessageActions: List[CommitMessageAction],
+                      whenNoValidCommitMessages: IncrementAction): RIO[Git with Blocking, VersionBumps] = {
     def logToBumps(log: String): IO[MkVerException, VersionBumps] = {
-      val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, VersionBumps())
+      val logBumps: VersionBumps = calcBumps(log.linesIterator.toList, commitMessageActions, VersionBumps())
       if (logBumps.noValidCommitMessages()) {
         getFallbackVersionBumps(whenNoValidCommitMessages, logBumps)
       } else {
@@ -86,41 +88,32 @@ object MkVer {
     }
   }
 
-  def getFallbackVersionBumps(whenNoValidCommitMessages: WhenNoValidCommitMessages, logBumps: VersionBumps): IO[MkVerException, VersionBumps] = {
+  def getFallbackVersionBumps(whenNoValidCommitMessages: IncrementAction, logBumps: VersionBumps): IO[MkVerException, VersionBumps] = {
     whenNoValidCommitMessages match {
-      case WhenNoValidCommitMessages.Fail => IO.fail(MkVerException("No valid commit messages found describing version increment"))
-      case WhenNoValidCommitMessages.IncrementMajor => IO.succeed(logBumps.bumpMajor())
-      case WhenNoValidCommitMessages.IncrementMinor => IO.succeed(logBumps.bumpMinor())
-      case WhenNoValidCommitMessages.IncrementPatch => IO.succeed(logBumps.bumpPatch())
-      case WhenNoValidCommitMessages.NoIncrement => IO.succeed(logBumps)
+      case IncrementAction.Fail => IO.fail(MkVerException("No valid commit messages found describing version increment"))
+      case IncrementAction.NoIncrement => IO.succeed(logBumps)
+      case other => IO.succeed(logBumps.bump(other))
     }
   }
 
-  def calcBumps(lines: List[String], bumps: VersionBumps): VersionBumps = {
-    val breaking = "BREAKING CHANGE".r
-    val major = "major(\\(.+\\))?:".r
-    val minor = "minor(\\(.+\\))?:".r
-    val patch = "patch(\\(.+\\))?:".r
-    val feat = "feat(\\(.+\\))?:".r
-    val fix = "fix(\\(.+\\))?:".r
+  def calcBumps(lines: List[String], commitMessageActions: List[CommitMessageAction], bumps: VersionBumps): VersionBumps = {
     if (lines.isEmpty) {
       bumps
     } else {
       val line = lines.head
       if (line.startsWith("commit")) {
-        calcBumps(lines.tail, bumps.bumpCommits())
+        calcBumps(lines.tail, commitMessageActions, bumps.bumpCommits())
       } else if (line.startsWith("    ")) {
-        if (major.findFirstIn(line).nonEmpty || breaking.findFirstIn(line).nonEmpty) {
-          calcBumps(lines.tail, bumps.bumpMajor())
-        } else if (minor.findFirstIn(line).nonEmpty || feat.findFirstIn(line).nonEmpty) {
-          calcBumps(lines.tail, bumps.bumpMinor())
-        } else if (patch.findFirstIn(line).nonEmpty || fix.findFirstIn(line).nonEmpty) {
-          calcBumps(lines.tail, bumps.bumpPatch())
-        } else {
-          calcBumps(lines.tail, bumps)
-        }
+        val newBumps = commitMessageActions.flatMap { cma =>
+          if (cma.pattern.r.findFirstIn(line).nonEmpty) {
+            Some(bumps.bump(cma.action))
+          } else {
+            None
+          }
+        }.headOption.getOrElse(bumps)
+        calcBumps(lines.tail, commitMessageActions, newBumps)
       } else {
-        calcBumps(lines.tail, bumps)
+        calcBumps(lines.tail, commitMessageActions, bumps)
       }
     }
   }

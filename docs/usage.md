@@ -8,6 +8,22 @@ $ git mkver next
 0.4.0
 ```
 
+### Controlling the next version number
+
+The next version number will be determined based on the commit messages since
+the last version was tagged. The commit messages that trigger different version
+increments are [configurable](config_reference) but by default they are as follows:
+
+- Commits containing the following will increment the _major_ version:
+  - `major:` or `major(...):`
+  - `BREAKING CHANGE`
+- Commits containing the following will increment the _minor_ version:
+  - `minor:` or `minor(...):`
+  - `feat:` or `feat(...):`
+- Commits containing the following will increment the _patch_ version:
+  - `patch:` or `patch(...):`
+  - `fix:` or `fix(...):`
+
 ## Common arguments
 
 All commands take a `-c <FILE>` or `--config <FILE>` option to set the config file to read. More details on the

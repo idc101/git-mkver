@@ -17,4 +17,4 @@ version numbers to develop or feature branches.
 
 ## Getting started
 
-[Install](installation) the binary and then read through the usage. 
+[Install](installation) the binary and then read through the [usage](usage). 

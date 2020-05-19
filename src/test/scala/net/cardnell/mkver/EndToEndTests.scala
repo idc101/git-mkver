@@ -101,8 +101,8 @@ object EndToEndTests extends DefaultRunnableSpec {
   def init(tempDir: File): RIO[Blocking, Unit] = {
     for {
       _ <- exec(Array("git", "init"), Some(tempDir))
-      _ <- exec (Array("git", "config", "user.name", "Mona Lisa"), Some(tempDir))
-      _ <- exec (Array("git", "config", "user.email", "mona.lisa@email.org"), Some(tempDir))
+      _ <- exec(Array("git", "config", "user.name", "Mona Lisa"), Some(tempDir))
+      _ <- exec(Array("git", "config", "user.email", "mona.lisa@email.org"), Some(tempDir))
     } yield ()
   }
 

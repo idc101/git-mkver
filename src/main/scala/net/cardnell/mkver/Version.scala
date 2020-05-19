@@ -2,6 +2,41 @@ package net.cardnell.mkver
 
 import java.time.LocalDate
 
+sealed trait VersionMode
+
+object VersionMode {
+  case object SemVer extends VersionMode
+  case object SemVerPreRelease extends VersionMode
+  case object YearMonth extends VersionMode
+  case object YearMonthPreRelease extends VersionMode
+
+  def read(value: String): Either[String, VersionMode] =
+    value match {
+      case "SemVer" => Right(SemVer)
+      case _ => Left("VersionMode must be one of: ")
+    }
+}
+
+sealed trait IncrementAction
+
+object IncrementAction {
+  case object Fail extends IncrementAction
+  case object IncrementMajor extends IncrementAction
+  case object IncrementMinor extends IncrementAction
+  case object IncrementPatch extends IncrementAction
+  case object NoIncrement extends IncrementAction
+
+  def read(value: String): Either[String, IncrementAction] =
+    value match {
+      case "Fail" => Right(Fail)
+      case "IncrementMajor" => Right(IncrementMajor)
+      case "IncrementMinor" => Right(IncrementMinor)
+      case "IncrementPatch" => Right(IncrementPatch)
+      case "NoIncrement" => Right(NoIncrement)
+      case _ => Left("IncrementAction should be one of Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
+    }
+}
+
 case class Version(major: Int = 0,
                    minor: Int = 1,
                    patch: Int = 0,
@@ -31,12 +66,17 @@ object Version {
 }
 
 case class VersionBumps(major: Boolean = false, minor: Boolean = false, patch: Boolean = false, commitCount: Int = 0) {
-  def bumpMajor(): VersionBumps = this.copy(major = true)
-  def bumpMinor(): VersionBumps = this.copy(minor = true)
-  def bumpPatch(): VersionBumps = this.copy(patch = true)
+  def bump(incrementAction: IncrementAction): VersionBumps = {
+    incrementAction match {
+      case IncrementAction.IncrementMajor => this.copy(major = true)
+      case IncrementAction.IncrementMinor => this.copy(minor = true)
+      case IncrementAction.IncrementPatch => this.copy(patch = true)
+      case IncrementAction.NoIncrement => this
+    }
+  }
   def bumpCommits(): VersionBumps = this.copy(commitCount = this.commitCount + 1)
   def noValidCommitMessages(): Boolean = { !major && !minor && !patch }
-  }
+}
 
 object VersionBumps {
   val none = VersionBumps()

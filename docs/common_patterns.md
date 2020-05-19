@@ -2,7 +2,8 @@
 
 ## trunk/master based development
 
-This mode of operation is the default
+This mode of operation is the default.
+
 Overview:
 
 - Developers commit to master or work on feature branches.
@@ -11,19 +12,7 @@ Overview:
 - Release Candidates are not used
 - Any version number not from master includes build metadata to indicate it is not an official release.
 
-### Controlling the next version number
-
-The next version number is obtained by parsing the commit messages since the last version was tagged.
-
-- Commits containing the following will bump with _major_ version:
-  - `major:` or `major(...):`
-  - `BREAKING CHANGE`
-- Commits containing the following will bump with _minor_ version:
-  - `minor:` or `minor(...):`
-  - `feat:` or `feat(...):`
-- Commits containing the following will bump with _patch_ version:
-  - `patch:` or `patch(...):`
-  - `fix:` or `fix(...):`
+### Build Server Setup
 
 The build script run by the build server would look something like:
 

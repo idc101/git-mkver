@@ -31,7 +31,7 @@ object Formatter {
     }
   }
 
-  def apply(version: VersionData, branchConfig: BranchConfig): Formatter = {
+  def apply(version: VersionData, branchConfig: RunConfig): Formatter = {
     Formatter(List(
       Format("Next", "{" + branchConfig.versionFormat + "}"),
       Format("Tag", "{TagPrefix}{" + branchConfig.versionFormat + "}"),
@@ -44,8 +44,8 @@ object Formatter {
       Format("Branch", branchNameToVariable(version.branch)),
       Format("ShortHash", version.commitHashShort),
       Format("FullHash", version.commitHashFull),
-      Format("dd", version.date.getDayOfMonth.formatted("00")),
-      Format("mm", version.date.getMonthValue.formatted("00")),
+      Format("dd", version.date.getDayOfMonth.formatted("%02d")),
+      Format("mm", version.date.getMonthValue.formatted("%02d")),
       Format("yyyy", version.date.getYear.toString),
       Format("Tag?", branchConfig.tag.toString),
       Format("TagPrefix", branchConfig.tagPrefix.toString)

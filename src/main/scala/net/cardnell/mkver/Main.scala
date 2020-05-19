@@ -33,23 +33,21 @@ object Main extends App {
     for {
       _ <- Git.checkGitRepo()
       currentBranch <- Git.currentBranch()
-      config <- AppConfig.getBranchConfig(opts.configFile, currentBranch)
+      config <- AppConfig.getRunConfig(opts.configFile, currentBranch)
       r <- opts.p match {
         case nextOps@NextOpts(_, _) =>
           runNext(nextOps, config, currentBranch)
         case TagOpts(_) =>
           runTag(config, currentBranch).map(_ => "")
         case PatchOpts(_) =>
-          AppConfig.getPatchConfigs(opts.configFile, config).flatMap { patchConfigs =>
-            runPatch(config, currentBranch, patchConfigs).map(_ => "")
-          }
+          runPatch(config, currentBranch).map(_ => "")
         case InfoOpts(includeBranchConfig) =>
           runInfo(config, currentBranch, includeBranchConfig)
       }
     } yield r
   }
 
-  def runNext(nextOpts: NextOpts, config: BranchConfig, currentBranch: String): RIO[Git with Blocking, String] = {
+  def runNext(nextOpts: NextOpts, config: RunConfig, currentBranch: String): RIO[Git with Blocking, String] = {
     getNextVersion(config, currentBranch).flatMap { nextVersion =>
       nextOpts.format.map { format =>
         Task.effect(Formatter(nextVersion, config).format(format))
@@ -59,7 +57,7 @@ object Main extends App {
     }
   }
 
-  def runTag(config: BranchConfig, currentBranch: String) = {
+  def runTag(config: RunConfig, currentBranch: String) = {
     for {
       nextVersion <- getNextVersion(config, currentBranch)
       tag <- formatTag(config, nextVersion)
@@ -72,9 +70,9 @@ object Main extends App {
     } yield ()
   }
 
-  def runPatch(config: BranchConfig, currentBranch: String, patchConfigs: List[PatchConfig]) = {
+  def runPatch(config: RunConfig, currentBranch: String) = {
     getNextVersion(config, currentBranch).flatMap { nextVersion =>
-      ZIO.foreach(patchConfigs) { patch =>
+      ZIO.foreach(config.patches) { patch =>
         val regex = patch.find.r
         val replacement = Formatter(nextVersion, config).format(patch.replace)
         ZIO.foreach(patch.filePatterns) { filePattern =>
@@ -95,7 +93,7 @@ object Main extends App {
     }.unit
   }
 
-  def runInfo(config: BranchConfig, currentBranch: String, includeBranchConfig: Boolean): RIO[Git with Blocking, String] = {
+  def runInfo(config: RunConfig, currentBranch: String, includeBranchConfig: Boolean): RIO[Git with Blocking, String] = {
     getNextVersion(config, currentBranch).map { nextVersion =>
       val formatter = Formatter(nextVersion, config)
       val formats = formatter.formats.map { format =>

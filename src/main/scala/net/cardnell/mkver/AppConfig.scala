@@ -230,7 +230,7 @@ object AppConfig {
       }.getOrElse {
         TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
       }.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
-    }.flatMap { source: ConfigSource[String, String] =>
+    }.flatMap { source: ConfigSource =>
       read(AppConfig.appConfigDesc from source) match {
         case Left(value) => Task.fail(MkVerException("Unable to parse config: " + value))
         case Right(result) => Task.succeed(result)

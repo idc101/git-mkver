@@ -89,7 +89,7 @@ object ProcessUtils {
       .getOrElse(command)
     for {
       p <- process.run
-      lines <- p.string
+      lines <- p.stdout.string
       exitCode <- p.exitCode
     } yield ProcessResult(lines.trim, "", exitCode)
   }

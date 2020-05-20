@@ -1,6 +1,5 @@
 package net.cardnell.mkver
 
-import net.cardnell.mkver.GitMock._
 import zio.test.Assertion.equalTo
 import zio.test.mock.Expectation._
 import zio.test.mock._
@@ -9,48 +8,50 @@ import zio.{Has, ULayer, URLayer, ZLayer}
 import Main.mainImpl
 
 // TODO >> @Mockable[Git.Service]
-object GitMock {
-  sealed trait Tag[I, A] extends Method[Git, I, A] {
-    def envBuilder: URLayer[Has[Proxy], Git] =
-      GitMock.envBuilder
-  }
+object GitMock extends Mock[Git] {
+//  sealed trait Tag[I, A] extends Method[Git, I, A] {
+//    def envBuilder: URLayer[Has[Proxy], Git] =
+//      GitMock.envBuilder
+//  }
 
-  object CurrentBranch extends Tag[Unit, String]
-  object FullLog extends Tag[Option[String], String]
-  object CommitInfoLog extends Tag[Unit, String]
-  object Tag extends Tag[(String, String), Unit]
-  object CheckGitRepo extends Tag[Unit, Unit]
+  object CurrentBranch extends Effect[Unit, Nothing, String]
+  object FullLog extends Effect[Option[String], Nothing, String]
+  object CommitInfoLog extends Effect[Unit, Nothing, String]
+  object Tag extends Effect[(String, String), Nothing, Unit]
+  object CheckGitRepo extends Effect[Unit, Nothing, Unit]
 
-  private val envBuilder: URLayer[Has[Proxy], Git] =
-    ZLayer.fromService(invoke =>
+  val compose: URLayer[Has[Proxy], Git] =
+    ZLayer.fromService { proxy =>
       new Git.Service {
-        def currentBranch() = invoke(CurrentBranch)
-        def fullLog(fromRef: Option[String]) = invoke(FullLog, fromRef)
-        def commitInfoLog() = invoke(CommitInfoLog)
-        def tag(tag: String, tagMessage: String) = invoke(Tag, tag, tagMessage)
-        def checkGitRepo() = invoke(CheckGitRepo)
+        def currentBranch() = proxy(CurrentBranch)
+        def fullLog(fromRef: Option[String]) = proxy(FullLog, fromRef)
+        def commitInfoLog() = proxy(CommitInfoLog)
+        def tag(tag: String, tagMessage: String) = proxy(Tag, tag, tagMessage)
+        def checkGitRepo() = proxy(CheckGitRepo)
       }
-    )
+    }
 }
 
 object MainSpec extends DefaultRunnableSpec {
   def spec = suite("MainSpec")(
     suite("main") (
       testM("next should return") {
-        val mockEnv: ULayer[Git] =
-          (CheckGitRepo returns unit) andThen
-            (CurrentBranch returns value("master")) andThen
-            (CommitInfoLog returns value("")) andThen
-            (FullLog(equalTo(None)) returns value(""))
+        val mockEnv: ULayer[Git] = (
+          GitMock.CheckGitRepo(unit) ++
+            GitMock.CurrentBranch(value("master")) ++
+            GitMock.CommitInfoLog(value("")) ++
+            GitMock.FullLog(equalTo(None), value(""))
+          )
         val result = mainImpl(List("next")).provideCustomLayer(mockEnv)
         assertM(result)(equalTo("0.1.0"))
       },
       testM("tag should return") {
-        val mockEnv: ULayer[Git] =
-          (CheckGitRepo returns unit) andThen
-            (CurrentBranch returns value("master")) andThen
-            (CommitInfoLog returns value("")) andThen
-            (FullLog(equalTo(None)) returns value(""))
+        val mockEnv: ULayer[Git] = (
+          GitMock.CheckGitRepo(unit) ++
+            GitMock.CurrentBranch(value("master")) ++
+            GitMock.CommitInfoLog(value("")) ++
+            GitMock.FullLog(equalTo(None), value(""))
+          )
         val result = mainImpl(List("tag")).provideCustomLayer(mockEnv)
         assertM(result)(
           equalTo("")

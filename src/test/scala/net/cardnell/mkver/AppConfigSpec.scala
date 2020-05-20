@@ -14,7 +14,7 @@ object AppConfigSpec extends DefaultRunnableSpec {
       testM("feat should return .* config") {
         assertM(AppConfig.getRunConfig(None, "feat"))(
           hasField("versionFormat", (c: RunConfig) => c.versionFormat, equalTo("VersionBuildMetaData")) &&
-            hasField("formats", _.formats, contains(Format("BuildMetaData", "{Branch}.{ShortHash}")))
+            hasField("formats", (c: RunConfig) => c.formats, contains(Format("BuildMetaData", "{Branch}.{ShortHash}")))
         )
       }
     ),

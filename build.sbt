@@ -10,12 +10,12 @@ lazy val root = (project in file("."))
         scalacOptions += "-Ypartial-unification",
         libraryDependencies += "org.typelevel" %% "cats-core" % "2.0.0",
         libraryDependencies += "com.monovore" %% "decline" % "1.0.0",
-        libraryDependencies += "dev.zio" %% "zio" % "1.0.0-RC18-2",
-        libraryDependencies += "dev.zio" %% "zio-process" % "0.0.2",
-        libraryDependencies += "dev.zio" %% "zio-config" % "1.0.0-RC16-2",
-        libraryDependencies += "dev.zio" %% "zio-config-typesafe" % "1.0.0-RC16-2",
-        libraryDependencies += "dev.zio" %% "zio-test"     % "1.0.0-RC18-2" % Test,
-        libraryDependencies += "dev.zio" %% "zio-test-sbt" % "1.0.0-RC18-2" % Test,
+        libraryDependencies += "dev.zio" %% "zio" % "1.0.0-RC19-2",
+        libraryDependencies += "dev.zio" %% "zio-process" % "0.0.4",
+        libraryDependencies += "dev.zio" %% "zio-config" % "1.0.0-RC18",
+        libraryDependencies += "dev.zio" %% "zio-config-typesafe" % "1.0.0-RC18",
+        libraryDependencies += "dev.zio" %% "zio-test"     % "1.0.0-RC19-2" % Test,
+        libraryDependencies += "dev.zio" %% "zio-test-sbt" % "1.0.0-RC19-2" % Test,
 
         testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework"),
 

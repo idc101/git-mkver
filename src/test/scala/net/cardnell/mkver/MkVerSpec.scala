@@ -51,7 +51,7 @@ object MkVerSpec extends DefaultRunnableSpec {
     suite("getCommitInfos")(
       testM("parse commit Info Log correctly") {
         val mockEnv: ULayer[Git] =
-          CommitInfoLog returns value(log)
+          GitMock.CommitInfoLog(value(log))
         val result = getCommitInfos("v").provideCustomLayer(mockEnv)
         assertM(result)(equalTo(List(
           CommitInfo("10be55f", "10be55fc56c197f5e0159cfbfac22832b289182f", 0, List()),

@@ -2,6 +2,7 @@ package net.cardnell.mkver
 
 import cats.implicits._
 import com.typesafe.config.ConfigFactory
+import net.cardnell.mkver.IncrementAction.IncrementMinor
 import zio.Task
 import zio.config.ConfigDescriptor.{string, _}
 import zio.config._
@@ -17,8 +18,7 @@ object Format {
     )(Format.apply, Format.unapply)
 }
 
-case class RunConfig(name: String,
-                     versionFormat: String,
+case class RunConfig(versionFormat: String,
                      tag: Boolean,
                      tagPrefix: String,
                      tagMessageFormat: String,
@@ -28,31 +28,27 @@ case class RunConfig(name: String,
                      formats: List[Format],
                      patches: List[PatchConfig])
 
-case class BranchConfig(name: String,
-                        versionFormat: String,
-                        tag: Boolean,
-                        tagPrefix: String,
-                        tagMessageFormat: String,
-                        preReleaseName: String,
-                        whenNoValidCommitMessages: IncrementAction,
-                        formats: List[Format],
-                        patches: List[String])
+case class BranchConfigDefaults(versionFormat: String,
+                                tag: Boolean,
+                                tagMessageFormat: String,
+                                preReleaseName: String,
+                                whenNoValidCommitMessages: IncrementAction,
+                                formats: List[Format],
+                                patches: List[String])
 
-case class BranchConfigOpt(name: String,
-                           versionFormat: Option[String],
-                           tag: Option[Boolean],
-                           tagPrefix: Option[String],
-                           tagMessageFormat: Option[String],
-                           preReleaseName: Option[String],
-                           whenNoValidCommitMessages: Option[IncrementAction],
-                           formats: Option[List[Format]],
-                           patches: Option[List[String]])
+case class BranchConfig(pattern: String,
+                        versionFormat: Option[String],
+                        tag: Option[Boolean],
+                        tagMessageFormat: Option[String],
+                        preReleaseName: Option[String],
+                        whenNoValidCommitMessages: Option[IncrementAction],
+                        formats: Option[List[Format]],
+                        patches: Option[List[String]])
 
 object BranchConfig {
-    val nameDesc = string("name").describe("regex to match branch name on")
+    val patternDesc = string("pattern").describe("regex to match branch name on")
     val versionFormatDesc = string("versionFormat").describe("the parts of the version number to be used")
     val tagDesc = boolean("tag").describe("whether to actually tag this branch when `mkver tag` is called")
-    val tagPrefixDesc = string("tagPrefix").describe("prefix for git tags")
     val tagMessageFormatDesc = string("tagMessageFormat").describe("A format to be used in the annotated git tag message")
     val preReleaseNameDesc = string("preReleaseName").describe("name of the pre-release. e.g. alpha, beta, rc")
     val whenNoValidCommitMessages = string("whenNoValidCommitMessages")
@@ -61,29 +57,26 @@ object BranchConfig {
     val formatsDesc = nested("formats")(list(Format.formatDesc)).describe("custom format strings")
     val patchesDesc = list("patches")(string).describe("Patch configs to be applied")
 
-  val branchConfigDesc = (
-      nameDesc.default(".*") |@|
+  val branchConfigDefaultsDesc = (
       versionFormatDesc.default("VersionBuildMetaData") |@|
       tagDesc.default(false) |@|
-      tagPrefixDesc.default("v") |@|
       tagMessageFormatDesc.default("release {Version}") |@|
       preReleaseNameDesc.default("rc") |@|
       whenNoValidCommitMessages.default(IncrementAction.IncrementMinor) |@|
       formatsDesc.default(Nil) |@|
       patchesDesc.default(Nil)
-    )(BranchConfig.apply, BranchConfig.unapply)
+    )(BranchConfigDefaults.apply, BranchConfigDefaults.unapply)
 
-  val branchConfigOptDesc = (
-      nameDesc |@|
+  val branchConfigDesc = (
+      patternDesc |@|
       versionFormatDesc.optional |@|
       tagDesc.optional |@|
-      tagPrefixDesc.optional |@|
       tagMessageFormatDesc.optional |@|
       preReleaseNameDesc.optional |@|
       whenNoValidCommitMessages.optional |@|
       formatsDesc.optional |@|
       patchesDesc.optional
-    )(BranchConfigOpt.apply, BranchConfigOpt.unapply)
+    )(BranchConfig.apply, BranchConfig.unapply)
 }
 
 case class PatchConfig(name: String, filePatterns: List[String], find: String, replace: String)
@@ -109,57 +102,78 @@ object CommitMessageAction {
 }
 
 case class AppConfig(mode: VersionMode,
-                     defaults: BranchConfig,
-                     branches: List[BranchConfigOpt],
-                     patches: List[PatchConfig],
-                     commitMessageActions: List[CommitMessageAction])
+                     tagPrefix: Option[String],
+                     defaults: Option[BranchConfigDefaults],
+                     branches: Option[List[BranchConfig]],
+                     patches: Option[List[PatchConfig]],
+                     commitMessageActions: Option[List[CommitMessageAction]])
 
 object AppConfig {
   val appConfigDesc = (
       string("mode").xmapEither(VersionMode.read, (output: VersionMode) => Right(output.toString))
-        .describe("The Version Mode for this repository") |@|
-      nested("defaults")(BranchConfig.branchConfigDesc) |@|
-      nested("branches")(list(BranchConfig.branchConfigOptDesc).default(Nil)) |@|
-      nested("patches")(list(PatchConfig.patchConfigDesc).default(Nil)) |@|
-      nested("commitMessageActions")(list(CommitMessageAction.commitMessageActionDesc).default(Nil))
+        .describe("The Version Mode for this repository")
+        .default(VersionMode.SemVer) |@|
+      string("tagPrefix").describe("prefix for git tags").optional |@|
+      nested("defaults")(BranchConfig.branchConfigDefaultsDesc).optional |@|
+      nested("branches")(list(BranchConfig.branchConfigDesc)).optional |@|
+      nested("patches")(list(PatchConfig.patchConfigDesc)).optional |@|
+      nested("commitMessageActions")(list(CommitMessageAction.commitMessageActionDesc)).optional
     )(AppConfig.apply, AppConfig.unapply)
+
+  object Defaults {
+    val name = ".*"
+    val versionFormat = "VersionBuildMetaData"
+    val tag = false
+    val tagMessageFormat = "release {Tag}"
+    val preReleaseName = "rc"
+    val whenNoValidCommitMessages = IncrementMinor
+    val patches = Nil
+    val formats = Nil
+  }
+  val defaultDefaultBranchConfig: BranchConfigDefaults = BranchConfigDefaults(
+    Defaults.versionFormat,
+    Defaults.tag,
+    Defaults.tagMessageFormat,
+    Defaults.preReleaseName,
+    Defaults.whenNoValidCommitMessages,
+    Defaults.patches,
+    Defaults.formats
+  )
+  val defaultBranchConfigs: List[BranchConfig] = List(
+    BranchConfig("master", Some("Version"), Some(true), None, None, None, None, None)
+  )
+  val defaultPatchConfigs: List[PatchConfig] = Nil
+  val defaultCommitMessageActions: List[CommitMessageAction] = List(
+    CommitMessageAction("BREAKING CHANGE", IncrementAction.IncrementMajor),
+    CommitMessageAction("major(\\(.+\\))?:", IncrementAction.IncrementMajor),
+    CommitMessageAction("minor(\\(.+\\))?:", IncrementAction.IncrementMinor),
+    CommitMessageAction("patch(\\(.+\\))?:", IncrementAction.IncrementPatch),
+    CommitMessageAction("feat(\\(.+\\))?:", IncrementAction.IncrementMinor),
+    CommitMessageAction("fix(\\(.+\\))?:", IncrementAction.IncrementPatch)
+  )
+  val defaultFormats: List[Format] = List(Format("BuildMetaData", "{Branch}.{ShortHash}"))
 
   def getRunConfig(configFile: Option[String], currentBranch: String): Task[RunConfig] = {
     for {
       appConfig <- getAppConfig(configFile)
-      refConfig <- getReferenceConfig
-      defaults = appConfig.defaults.copy(formats = mergeFormats(refConfig.defaults.formats, appConfig.defaults.formats))
-      branchConfig = appConfig.branches.find { bc => currentBranch.matches(bc.name) }
-      patchNames = branchConfig.flatMap(_.patches).getOrElse(defaults.patches)
+      defaults = appConfig.defaults.getOrElse(defaultDefaultBranchConfig)
+        .copy(formats = mergeFormats(defaultDefaultBranchConfig.formats, appConfig.defaults.map(_.formats).getOrElse(Nil)))
+      branchConfig = appConfig.branches.getOrElse(defaultBranchConfigs)
+        .find { bc => currentBranch.matches(bc.pattern) }
+      patchNames = branchConfig.map(_.patches.getOrElse(Nil)).getOrElse(defaults.patches)
       patchConfigs <- getPatchConfigs(appConfig, patchNames)
     } yield {
-      branchConfig.map { bc =>
-        RunConfig(
-          name = bc.name,
-          versionFormat = bc.versionFormat.getOrElse(defaults.versionFormat),
-          tag = bc.tag.getOrElse(defaults.tag),
-          tagPrefix = bc.tagPrefix.getOrElse(defaults.tagPrefix),
-          tagMessageFormat = bc.tagMessageFormat.getOrElse(defaults.tagMessageFormat),
-          preReleaseName = bc.preReleaseName.getOrElse(defaults.preReleaseName),
-          commitMessageActions = mergeCommitMessageActions(refConfig.commitMessageActions, appConfig.commitMessageActions),
-          whenNoValidCommitMessages = bc.whenNoValidCommitMessages.getOrElse(defaults.whenNoValidCommitMessages),
-          formats = mergeFormats(defaults.formats, bc.formats.getOrElse(Nil)),
-          patches = patchConfigs
-        )
-      }.getOrElse {
-        RunConfig(
-          name = defaults.name,
-          versionFormat = defaults.versionFormat,
-          tag = defaults.tag,
-          tagPrefix = defaults.tagPrefix,
-          tagMessageFormat = defaults.tagMessageFormat,
-          preReleaseName = defaults.preReleaseName,
-          commitMessageActions = appConfig.commitMessageActions,
-          whenNoValidCommitMessages = defaults.whenNoValidCommitMessages,
-          formats = defaults.formats,
-          patches = patchConfigs
-        )
-      }
+      RunConfig(
+        versionFormat = branchConfig.flatMap(_.versionFormat).getOrElse(defaults.versionFormat),
+        tag = branchConfig.flatMap(_.tag).getOrElse(defaults.tag),
+        tagPrefix = appConfig.tagPrefix.getOrElse("v"),
+        tagMessageFormat = branchConfig.flatMap(_.tagMessageFormat).getOrElse(defaults.tagMessageFormat),
+        preReleaseName = branchConfig.flatMap(_.preReleaseName).getOrElse(defaults.preReleaseName),
+        commitMessageActions = mergeCommitMessageActions(defaultCommitMessageActions, appConfig.commitMessageActions.getOrElse(Nil)),
+        whenNoValidCommitMessages = branchConfig.flatMap(_.whenNoValidCommitMessages).getOrElse(defaults.whenNoValidCommitMessages),
+        formats = mergeFormats(defaultFormats, branchConfig.flatMap(_.formats).getOrElse(Nil)),
+        patches = patchConfigs
+      )
     }
   }
 
@@ -176,7 +190,7 @@ object AppConfig {
   }
 
   def getPatchConfigs(appConfig: AppConfig, patchNames: List[String]): Task[List[PatchConfig]] = {
-    val allPatchConfigs = appConfig.patches.map(it => (it.name, it)).toMap
+    val allPatchConfigs = appConfig.patches.getOrElse(Nil).map(it => (it.name, it)).toMap
     Task.foreach(patchNames) { c =>
       allPatchConfigs.get(c) match {
         case Some(p) => Task.succeed(p)
@@ -217,17 +231,6 @@ object AppConfig {
         TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
       }.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
     }.flatMap { source: ConfigSource[String, String] =>
-      read(AppConfig.appConfigDesc from source) match {
-        case Left(value) => Task.fail(MkVerException("Unable to parse config: " + value))
-        case Right(result) => Task.succeed(result)
-      }
-    }
-  }
-
-  def getReferenceConfig: Task[AppConfig] = {
-    val source = TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
-    source.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
-      .flatMap { source: ConfigSource[String, String] =>
       read(AppConfig.appConfigDesc from source) match {
         case Left(value) => Task.fail(MkVerException("Unable to parse config: " + value))
         case Right(result) => Task.succeed(result)

@@ -8,12 +8,12 @@ object AppConfigSpec extends DefaultRunnableSpec {
     suite("getBranchConfig") (
       testM("master should return master config") {
         assertM(AppConfig.getRunConfig(None, "master"))(
-          hasField("name", _.name, equalTo("master"))
+          hasField("versionFormat", _.versionFormat, equalTo("Version"))
         )
       },
       testM("feat should return .* config") {
         assertM(AppConfig.getRunConfig(None, "feat"))(
-          hasField("name", (c: RunConfig) => c.name, equalTo(".*")) &&
+          hasField("versionFormat", (c: RunConfig) => c.versionFormat, equalTo("VersionBuildMetaData")) &&
             hasField("formats", _.formats, contains(Format("BuildMetaData", "{Branch}.{ShortHash}")))
         )
       }

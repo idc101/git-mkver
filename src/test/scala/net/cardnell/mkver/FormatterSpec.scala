@@ -27,7 +27,7 @@ object FormatterSpec extends DefaultRunnableSpec {
     },
     test("should format default variables") {
       val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now())
-      val runConfig = RunConfig(".*", "Version", true, "v", "release {Version}", "RC", List(), IncrementAction.IncrementMinor, Nil, Nil)
+      val runConfig = RunConfig("Version", true, "v", "release {Version}", "RC", List(), IncrementAction.IncrementMinor, Nil, Nil)
       val formatter = Formatter(versionData, runConfig)
       assert(formatter.format("{Major}"))(equalTo("1")) &&
         assert(formatter.format("{Minor}"))(equalTo("2")) &&

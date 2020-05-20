@@ -26,14 +26,7 @@ object MkVerSpec extends DefaultRunnableSpec {
                   |
                   |    fix: code1.py""".stripMargin
 
-  val commitMessageActions = List(
-    CommitMessageAction("BREAKING CHANGE", IncrementAction.IncrementMajor),
-    CommitMessageAction("major(\\(.+\\))?:", IncrementAction.IncrementMajor),
-    CommitMessageAction("minor(\\(.+\\))?:", IncrementAction.IncrementMinor),
-    CommitMessageAction("patch(\\(.+\\))?:", IncrementAction.IncrementPatch),
-    CommitMessageAction("feat(\\(.+\\))?:", IncrementAction.IncrementMinor),
-    CommitMessageAction("fix(\\(.+\\))?:", IncrementAction.IncrementPatch)
-  )
+  val commitMessageActions = AppConfig.defaultCommitMessageActions
 
   def spec = suite("MkVerSpec")(
     suite("calcBumps")(
@@ -75,7 +68,7 @@ object MkVerSpec extends DefaultRunnableSpec {
     suite("formatTag")(
       testM("should format tag") {
         val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now())
-        val runConfig = RunConfig(".*", "Version", true, "v", "release {Version}", "RC", commitMessageActions, IncrementAction.IncrementMinor, List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
+        val runConfig = RunConfig("Version", true, "v", "release {Version}", "RC", commitMessageActions, IncrementAction.IncrementMinor, List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
         assertM(formatTag(runConfig, versionData))(equalTo("v1.2.3"))
       }
     ),

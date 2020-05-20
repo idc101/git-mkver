@@ -17,6 +17,8 @@ The application uses the HOCON format. More details on the specification can be 
 # Versioning mode to be used in this repository
 # Can be one of SemVer | SemVerPreRelease | YearMonth | YearMonthPreRelease
 mode: SemVer
+# prefix for tags in git
+tagPrefix: v
 # defaults are used if they are not overriden by a branch config
 defaults {
   # format string to be used for versioning the repo
@@ -25,8 +27,6 @@ defaults {
   versionFormat: VersionBuildMetaData
   # whether to really tag the branch when `git mkver tag` is called
   tag: false
-  # prefix for tags in git
-  tagPrefix: v
   # message for annotated version tags in git
   tagMessageFormat: "release {Tag}"
   # name of the pre-release e.g. alpha, beta, rc
@@ -38,7 +38,7 @@ defaults {
   # * IncrementMinor - bump the minor version
   # * IncrementPatch - bump the patch version
   # * NoIncrement - no version change will occur
-  whenNoValidCommitMessages: "IncrementMinor"
+  whenNoValidCommitMessages: IncrementMinor
   # list of patches to be applied when `git mkver patch` is called
   patches: [
     HelmChart
@@ -65,12 +65,12 @@ defaults {
 # branches are tried for matches in order
 branches: [
   {
-    name: "master"
+    pattern: "master"
     tag: true
     tagFormat: Version
   }
   {
-    name: ".*"
+    pattern: ".*"
     tag: false
     formats: [
       {
@@ -103,7 +103,7 @@ patches: [
     replace: "<Version>{Version}</Version>"
   }
 ]
-# commitMessageActions configures how different commit messages will increment
+# commitMessageActions configure how different commit messages will increment
 # the version number
 commitMessageActions: [
   {

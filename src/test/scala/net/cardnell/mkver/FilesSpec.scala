@@ -1,6 +1,6 @@
 package net.cardnell.mkver
 
-import zio.test.Assertion.equalTo
+import zio.test.Assertion._
 import zio.test.{DefaultRunnableSpec, assertM, suite, testM}
 
 object FilesSpec extends DefaultRunnableSpec {
@@ -32,7 +32,7 @@ object FilesSpec extends DefaultRunnableSpec {
         files <- Files.glob(p, "**/*.sbt")
         list = files.map(_.path.toString)
       } yield list
-      assertM(result)(equalTo(List(s"project${fs}plugins.sbt")))
+      assertM(result)(hasSameElements(List(s"project${fs}plugins.sbt")))
     },
     testM("glob wildcard in all directories") {
       val result = for {
@@ -40,7 +40,7 @@ object FilesSpec extends DefaultRunnableSpec {
         files <- Files.glob(p, "***.sbt")
         list = files.map(_.path.toString)
       } yield list
-      assertM(result)(equalTo(List(s"project${fs}plugins.sbt", "build.sbt")))
+      assertM(result)(hasSameElements(List(s"project${fs}plugins.sbt", "build.sbt")))
     },
   )
 }

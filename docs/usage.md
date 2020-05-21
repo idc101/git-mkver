@@ -8,7 +8,7 @@ $ git mkver next
 0.4.0
 ```
 
-### Controlling the next version number
+## Controlling the next version number
 
 The next version number will be determined based on the commit messages since
 the last version was tagged. The commit messages that trigger different version
@@ -23,6 +23,10 @@ increments are [configurable](config_reference) but by default they are as follo
 - Commits containing the following will increment the _patch_ version:
   - `patch:` or `patch(...):`
   - `fix:` or `fix(...):`
+
+All commit messages since the last tagged message are analyzed and the greatest
+version increment is used. For example if one commit is a minor change and one is
+a major change then the major version will be incremented.
 
 ## Common arguments
 

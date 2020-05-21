@@ -1,6 +1,6 @@
 #  git-mkver
 
-Helps version your software and patch version numbers into the build.
+Automatic Semantic Versioning for git based software development.
 
 For more information head to the [project site](https://idc101.github.io/git-mkver/).
 
@@ -28,8 +28,14 @@ Download the binary for your os from the [releases](https://github.com/idc101/gi
 
 ## Usage
 
-Basic usage is to just call `git mkver next` and it will tell you the next
-version of the software if you publish now.
+Start by using [Conventional Commits](https://www.conventionalcommits.org/) to indicate whether the commits contain
+major, minor or patch level changes.
+
+```bash
+$ git commit -m "feat: added a new feature (this will increment the minor version)"
+```
+
+Then call `git mkver next` and it will tell you the next version of the software should be if you publish now.
 
 ```bash
 $ git mkver next
@@ -38,7 +44,7 @@ v0.4.0
 
 ### Tagging
 
-If you would like to publish a version, mkver can tag the current commit.
+If you would like to publish a version, git-mkver can tag the current commit.
 
 ```bash
 $ git mkver tag
@@ -50,7 +56,7 @@ This will apply an annotated tag from the `next` command to the current commit.
 
 If you would like to patch version numbers in files prior to building and tagging then
 you can use the `patch` command. The files to be patched and the replacements are
-defined in the `mkver.yaml` config file. A large number of standard patches come
+defined in the `mkver.conf` config file. A large number of standard patches come
 pre-defined.
 
 ```bash

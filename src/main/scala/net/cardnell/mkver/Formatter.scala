@@ -44,6 +44,8 @@ object Formatter {
       Format("Branch", branchNameToVariable(version.branch)),
       Format("ShortHash", version.commitHashShort),
       Format("FullHash", version.commitHashFull),
+      Format("CommitsSinceTag", version.commitCount.toString),
+      Format("Tagged?", (version.commitCount == 0).toString),
       Format("dd", version.date.getDayOfMonth.formatted("%02d")),
       Format("mm", version.date.getMonthValue.formatted("%02d")),
       Format("yyyy", version.date.getYear.toString),

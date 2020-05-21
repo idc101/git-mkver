@@ -31,11 +31,13 @@ The following built in formats conform to the SemVer spec. They cannot be overri
 | `Tag` | Full Semantic Version as a tag (includes the prefix) |
 | `TagMessage` | Tag Message |
 | `Major` | Version major number |
-| `Minor` | Version nimor number |
+| `Minor` | Version minor number |
 | `Patch` | Version patch number |
 | `Branch` | Branch name |
 | `ShortHash` | Short Hash |
 | `FullHash` | Full Hash |
+| `CommitsSinceTag` | Number of commits since last tag |
+| `Tagged?` | `true` if this commit is tagged (`CommitsSinceTag` == 0), `false` otherwise |
 | `dd` | Day |
 | `mm` | Month |
 | `yyyy` | Year |

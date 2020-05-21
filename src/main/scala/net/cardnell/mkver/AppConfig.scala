@@ -160,7 +160,7 @@ object AppConfig {
         .copy(formats = mergeFormats(defaultDefaultBranchConfig.formats, appConfig.defaults.map(_.formats).getOrElse(Nil)))
       branchConfig = appConfig.branches.getOrElse(defaultBranchConfigs)
         .find { bc => currentBranch.matches(bc.pattern) }
-      patchNames = branchConfig.map(_.patches.getOrElse(Nil)).getOrElse(defaults.patches)
+      patchNames = branchConfig.flatMap(_.patches).getOrElse(defaults.patches)
       patchConfigs <- getPatchConfigs(appConfig, patchNames)
     } yield {
       RunConfig(

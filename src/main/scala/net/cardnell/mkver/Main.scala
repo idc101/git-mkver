@@ -81,7 +81,7 @@ object Main extends App {
             matches <- Files.glob(cwd, filePattern)
             l <- ZIO.foreach(matches) { fileMatch =>
               for {
-                _ <- putStrLn(s"Patching $fileMatch with new value $replacement")
+                _ <- putStrLn(s"Patching file: '${fileMatch.path.toString}', new value: '$replacement'")
                 content <- Files.readAll(fileMatch)
                 newContent <- ZIO.effect(regex.replaceAllIn(content, replacement))
                 p <- Files.write(fileMatch, newContent)

@@ -71,7 +71,7 @@ case class VersionBumps(major: Boolean = false, minor: Boolean = false, patch: B
       case IncrementAction.IncrementMajor => this.copy(major = true)
       case IncrementAction.IncrementMinor => this.copy(minor = true)
       case IncrementAction.IncrementPatch => this.copy(patch = true)
-      case IncrementAction.NoIncrement => this
+      case _ => this
     }
   }
   def bumpCommits(): VersionBumps = this.copy(commitCount = this.commitCount + 1)

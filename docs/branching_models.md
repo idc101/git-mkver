@@ -1,4 +1,4 @@
-# Usage Patterns
+# Branching Models
 
 Below are some popular git branching development models and how to configure them with git-mkver:
 - master (aka trunk) based development
@@ -29,6 +29,8 @@ The build script run by the build server would look something like:
 
 ```bash
 nextVer=$(git mkver next)
+# patch the version number into files as needed
+git mkver patch
 # build software ...
 # If successful:
 git mkver tag

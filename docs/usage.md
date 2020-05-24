@@ -47,8 +47,7 @@ This will apply an annotated tag from the `next` command to the current commit.
 
 If you would like to patch version numbers in files prior to building and tagging then
 you can use the `patch` command. The files to be patched and the replacements are
-defined in the `mkver.yaml` config file. A large number of standard patches come
-pre-defined.
+defined in the `mkver.conf` [config](config) file.
 
 ```bash
 $ git mkver patch

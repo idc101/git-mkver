@@ -41,7 +41,7 @@ object CommandLineArgs {
   val commandLineOpts: Opts[CommandLineOpts] = (configFile, commands).mapN(CommandLineOpts.apply)
 
   val mkverCommand: Command[CommandLineOpts] = Command(
-    name = "git-mkver",
+    name = s"git-mkver - v${GitMkverVersion}",
     header = "Uses git tags, branch names and commit messages to determine the next version of the software to release"
   ) {
     commandLineOpts

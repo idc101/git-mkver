@@ -7,10 +7,6 @@ For example git is happy with the SemVer standard for tagging but docker does no
 
 All replacements in format strings start with `{` and end with `}`. They are recursively replaced so that one may refer to another.
 
-## Examples
-
-
-
 ## SemVer Formats
 
 The following built in formats conform to the SemVer spec. They cannot be overriden.
@@ -21,7 +17,6 @@ The following built in formats conform to the SemVer spec. They cannot be overri
 | `VersionPreRelease` | `{Version}-{PreRelease}` |
 | `VersionBuildMetaData` | `{Version}+{BuildMetaData}` |
 | `VersionPreReleaseBuildMetaData` | `{Version}-{PreRelease}+{BuildMetaData}` |
-
 
 ## Built-in Formats 
 

@@ -1,5 +1,5 @@
 #/bin/bash
-MKVER_VERSION=0.5.1
+MKVER_VERSION=0.6.0+feature-pre-release.76ac5bd-RC+feature-pre-release.76ac5bd
 curl -L https://github.com/idc101/git-mkver/releases/download/v${MKVER_VERSION}/git-mkver-darwin-amd64-${MKVER_VERSION}.tar.gz -o git-mkver.tar.gz
 tar xvzf git-mkver.tar.gz
 sudo mv git-mkver /usr/local/bin

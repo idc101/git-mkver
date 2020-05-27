@@ -14,65 +14,92 @@ case class Format(name: String, format: String)
 object Format {
   val formatDesc = (
     string("name").describe("Name of format. e.g. 'MajorMinor'") |@|
-    string("format").describe("Format string for this format. Can include other formats. e.g. '{x}.{y}'")
+      string("format").describe("Format string for this format. Can include other formats. e.g. '{x}.{y}'")
     )(Format.apply, Format.unapply)
 }
 
-case class RunConfig(versionFormat: String,
-                     tag: Boolean,
+case class RunConfig(tag: Boolean,
                      tagPrefix: String,
                      tagMessageFormat: String,
-                     preReleaseName: String,
+                     preReleaseFormat: String,
+                     buildMetaDataFormat: String,
+                     includeBuildMetaData: Boolean,
                      commitMessageActions: List[CommitMessageAction],
                      whenNoValidCommitMessages: IncrementAction,
                      formats: List[Format],
                      patches: List[PatchConfig])
 
-case class BranchConfigDefaults(versionFormat: String,
-                                tag: Boolean,
+case class BranchConfigDefaults(tag: Boolean,
                                 tagMessageFormat: String,
-                                preReleaseName: String,
+                                preReleaseFormat: String,
+                                buildMetaDataFormat: String,
+                                includeBuildMetaData: Boolean,
                                 whenNoValidCommitMessages: IncrementAction,
                                 formats: List[Format],
                                 patches: List[String])
 
 case class BranchConfig(pattern: String,
-                        versionFormat: Option[String],
                         tag: Option[Boolean],
                         tagMessageFormat: Option[String],
-                        preReleaseName: Option[String],
+                        preReleaseFormat: Option[String],
+                        buildMetaDataFormat: Option[String],
+                        includeBuildMetaData: Option[Boolean],
                         whenNoValidCommitMessages: Option[IncrementAction],
                         formats: Option[List[Format]],
                         patches: Option[List[String]])
 
 object BranchConfig {
-    val patternDesc = string("pattern").describe("regex to match branch name on")
-    val versionFormatDesc = string("versionFormat").describe("the parts of the version number to be used")
-    val tagDesc = boolean("tag").describe("whether to actually tag this branch when `mkver tag` is called")
-    val tagMessageFormatDesc = string("tagMessageFormat").describe("A format to be used in the annotated git tag message")
-    val preReleaseNameDesc = string("preReleaseName").describe("name of the pre-release. e.g. alpha, beta, rc")
-    val whenNoValidCommitMessages = string("whenNoValidCommitMessages")
-      .xmapEither(IncrementAction.read, (output: IncrementAction) => Right(output.toString))
-      .describe("behaviour if no valid commit messages are found Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
-    val formatsDesc = nested("formats")(list(Format.formatDesc)).describe("custom format strings")
-    val patchesDesc = list("patches")(string).describe("Patch configs to be applied")
+  object Defaults {
+    val name = ".*"
+    val tag = false
+    val tagMessageFormat = "release {Tag}"
+    val preReleaseFormat = "RC{PreReleaseNumber}"
+    val buildMetaDataFormat = "{Branch}.{ShortHash}"
+    val includeBuildMetaData = false
+    val whenNoValidCommitMessages = IncrementMinor
+    val patches = Nil
+    val formats = Nil
+  }
+
+  def readPreReleaseFormat(value: String): Either[String, String] =
+    if (value.contains("{PreReleaseNumber}") && !value.endsWith("{PreReleaseNumber}")) {
+      Left("preReleaseFormat must end with {PreReleaseNumber}")
+    } else {
+      Right(value)
+    }
+
+  val patternDesc = string("pattern").describe("regex to match branch name on")
+  val tagDesc = boolean("tag").describe("whether to actually tag this branch when `mkver tag` is called")
+  val tagMessageFormatDesc = string("tagMessageFormat").describe("format to be used in the annotated git tag message")
+  val preReleaseFormatDesc = string("preReleaseFormat")
+    .xmapEither(readPreReleaseFormat, (v: String) => Right(v))
+    .describe("format to be used for the pre-release. e.g. alpha, RC-{PreReleaseNumber}, SNAPSHOT")
+  val buildMetaDataFormatDesc = string("buildMetaDataFormat").describe("format to be used for the build metadata. e.g. {BranchName}")
+  val includeBuildMetaDataDesc = boolean("includeBuildMetaData").describe("whether the tag version includes the build metadata component")
+  val whenNoValidCommitMessages = string("whenNoValidCommitMessages")
+    .xmapEither(IncrementAction.read, (output: IncrementAction) => Right(output.toString))
+    .describe("behaviour if no valid commit messages are found Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
+  val formatsDesc = nested("formats")(list(Format.formatDesc)).describe("custom format strings")
+  val patchesDesc = list("patches")(string).describe("Patch configs to be applied")
 
   val branchConfigDefaultsDesc = (
-      versionFormatDesc.default("VersionBuildMetaData") |@|
-      tagDesc.default(false) |@|
-      tagMessageFormatDesc.default("release {Version}") |@|
-      preReleaseNameDesc.default("rc") |@|
-      whenNoValidCommitMessages.default(IncrementAction.IncrementMinor) |@|
-      formatsDesc.default(Nil) |@|
-      patchesDesc.default(Nil)
+    tagDesc.default(Defaults.tag) |@|
+      tagMessageFormatDesc.default(Defaults.tagMessageFormat) |@|
+      preReleaseFormatDesc.default(Defaults.preReleaseFormat) |@|
+      buildMetaDataFormatDesc.default(Defaults.buildMetaDataFormat) |@|
+      includeBuildMetaDataDesc.default(Defaults.includeBuildMetaData) |@|
+      whenNoValidCommitMessages.default(Defaults.whenNoValidCommitMessages) |@|
+      formatsDesc.default(Defaults.formats) |@|
+      patchesDesc.default(Defaults.patches)
     )(BranchConfigDefaults.apply, BranchConfigDefaults.unapply)
 
   val branchConfigDesc = (
-      patternDesc |@|
-      versionFormatDesc.optional |@|
+    patternDesc |@|
       tagDesc.optional |@|
       tagMessageFormatDesc.optional |@|
-      preReleaseNameDesc.optional |@|
+      preReleaseFormatDesc.optional |@|
+      buildMetaDataFormatDesc.optional |@|
+      includeBuildMetaDataDesc.optional |@|
       whenNoValidCommitMessages.optional |@|
       formatsDesc.optional |@|
       patchesDesc.optional
@@ -83,7 +110,7 @@ case class PatchConfig(name: String, filePatterns: List[String], find: String, r
 
 object PatchConfig {
   val patchConfigDesc = (
-      string("name").describe("Name of patch, referenced from branch configs") |@|
+    string("name").describe("Name of patch, referenced from branch configs") |@|
       list("filePatterns")(string).describe("Files to apply find and replace in. Supports ** and * glob patterns.") |@|
       string("find").describe("Regex to find in file") |@|
       string("replace").describe("Replacement string. Can include version format strings (see help)")
@@ -95,9 +122,9 @@ case class CommitMessageAction(pattern: String, action: IncrementAction)
 object CommitMessageAction {
   val commitMessageActionDesc = (
     string("pattern").describe("Regular expression to match a commit message line") |@|
-    string("action")
-      .xmapEither(IncrementAction.read, (output: IncrementAction) => Right(output.toString))
-      .describe("Version Increment behaviour if a commit line matches the regex Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
+      string("action")
+        .xmapEither(IncrementAction.read, (output: IncrementAction) => Right(output.toString))
+        .describe("Version Increment behaviour if a commit line matches the regex Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
     )(CommitMessageAction.apply, CommitMessageAction.unapply)
 }
 
@@ -110,9 +137,9 @@ case class AppConfig(mode: VersionMode,
 
 object AppConfig {
   val appConfigDesc = (
-      string("mode").xmapEither(VersionMode.read, (output: VersionMode) => Right(output.toString))
-        .describe("The Version Mode for this repository")
-        .default(VersionMode.SemVer) |@|
+    string("mode").xmapEither(VersionMode.read, (output: VersionMode) => Right(output.toString))
+      .describe("The Version Mode for this repository")
+      .default(VersionMode.SemVer) |@|
       string("tagPrefix").describe("prefix for git tags").optional |@|
       nested("defaults")(BranchConfig.branchConfigDefaultsDesc).optional |@|
       nested("branches")(list(BranchConfig.branchConfigDesc)).optional |@|
@@ -120,29 +147,20 @@ object AppConfig {
       nested("commitMessageActions")(list(CommitMessageAction.commitMessageActionDesc)).optional
     )(AppConfig.apply, AppConfig.unapply)
 
-  object Defaults {
-    val name = ".*"
-    val versionFormat = "VersionBuildMetaData"
-    val tag = false
-    val tagMessageFormat = "release {Tag}"
-    val preReleaseName = "rc"
-    val whenNoValidCommitMessages = IncrementMinor
-    val patches = Nil
-    val formats = Nil
-  }
+
   val defaultDefaultBranchConfig: BranchConfigDefaults = BranchConfigDefaults(
-    Defaults.versionFormat,
-    Defaults.tag,
-    Defaults.tagMessageFormat,
-    Defaults.preReleaseName,
-    Defaults.whenNoValidCommitMessages,
-    Defaults.patches,
-    Defaults.formats
+    BranchConfig.Defaults.tag,
+    BranchConfig.Defaults.tagMessageFormat,
+    BranchConfig.Defaults.preReleaseFormat,
+    BranchConfig.Defaults.buildMetaDataFormat,
+    BranchConfig.Defaults.includeBuildMetaData,
+    BranchConfig.Defaults.whenNoValidCommitMessages,
+    BranchConfig.Defaults.patches,
+    BranchConfig.Defaults.formats
   )
   val defaultBranchConfigs: List[BranchConfig] = List(
-    BranchConfig("master", Some("Version"), Some(true), None, None, None, None, None)
+    BranchConfig("master", Some(true), None, None, None, Some(false), None, None, None)
   )
-  val defaultPatchConfigs: List[PatchConfig] = Nil
   val defaultCommitMessageActions: List[CommitMessageAction] = List(
     CommitMessageAction("BREAKING CHANGE", IncrementAction.IncrementMajor),
     CommitMessageAction("major(\\(.+\\))?:", IncrementAction.IncrementMajor),
@@ -151,27 +169,26 @@ object AppConfig {
     CommitMessageAction("feat(\\(.+\\))?:", IncrementAction.IncrementMinor),
     CommitMessageAction("fix(\\(.+\\))?:", IncrementAction.IncrementPatch)
   )
-  val defaultFormats: List[Format] = List(Format("BuildMetaData", "{Branch}.{ShortHash}"))
 
   def getRunConfig(configFile: Option[String], currentBranch: String): Task[RunConfig] = {
     for {
       appConfig <- getAppConfig(configFile)
       defaults = appConfig.defaults.getOrElse(defaultDefaultBranchConfig)
-        .copy(formats = mergeFormats(defaultDefaultBranchConfig.formats, appConfig.defaults.map(_.formats).getOrElse(Nil)))
       branchConfig = appConfig.branches.getOrElse(defaultBranchConfigs)
         .find { bc => currentBranch.matches(bc.pattern) }
       patchNames = branchConfig.flatMap(_.patches).getOrElse(defaults.patches)
       patchConfigs <- getPatchConfigs(appConfig, patchNames)
     } yield {
       RunConfig(
-        versionFormat = branchConfig.flatMap(_.versionFormat).getOrElse(defaults.versionFormat),
         tag = branchConfig.flatMap(_.tag).getOrElse(defaults.tag),
         tagPrefix = appConfig.tagPrefix.getOrElse("v"),
         tagMessageFormat = branchConfig.flatMap(_.tagMessageFormat).getOrElse(defaults.tagMessageFormat),
-        preReleaseName = branchConfig.flatMap(_.preReleaseName).getOrElse(defaults.preReleaseName),
+        preReleaseFormat = branchConfig.flatMap(_.preReleaseFormat).getOrElse(defaults.preReleaseFormat),
+        buildMetaDataFormat = branchConfig.flatMap(_.buildMetaDataFormat).getOrElse(defaults.buildMetaDataFormat),
+        includeBuildMetaData = branchConfig.flatMap(_.includeBuildMetaData).getOrElse(defaults.includeBuildMetaData),
         commitMessageActions = mergeCommitMessageActions(defaultCommitMessageActions, appConfig.commitMessageActions.getOrElse(Nil)),
         whenNoValidCommitMessages = branchConfig.flatMap(_.whenNoValidCommitMessages).getOrElse(defaults.whenNoValidCommitMessages),
-        formats = mergeFormats(defaultFormats, branchConfig.flatMap(_.formats).getOrElse(Nil)),
+        formats = mergeFormats(defaults.formats, branchConfig.flatMap(_.formats).getOrElse(Nil)),
         patches = patchConfigs
       )
     }

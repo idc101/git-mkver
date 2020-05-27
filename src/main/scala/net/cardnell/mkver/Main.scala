@@ -35,33 +35,33 @@ object Main extends App {
       currentBranch <- Git.currentBranch()
       config <- AppConfig.getRunConfig(opts.configFile, currentBranch)
       r <- opts.p match {
-        case nextOps@NextOpts(_, _) =>
+        case nextOps@NextOpts(_, _, _) =>
           runNext(nextOps, config, currentBranch)
-        case TagOpts(_) =>
-          runTag(config, currentBranch).map(_ => "")
-        case PatchOpts(_) =>
-          runPatch(config, currentBranch).map(_ => "")
-        case InfoOpts(includeBranchConfig) =>
-          runInfo(config, currentBranch, includeBranchConfig)
+        case tagOpts@TagOpts(_) =>
+          runTag(tagOpts, config, currentBranch).map(_ => "")
+        case patchOpts@PatchOpts(_) =>
+          runPatch(patchOpts, config, currentBranch).map(_ => "")
+        case infoOpts@InfoOpts(_, _) =>
+          runInfo(infoOpts, config, currentBranch)
       }
     } yield r
   }
 
   def runNext(nextOpts: NextOpts, config: RunConfig, currentBranch: String): RIO[Git with Blocking, String] = {
-    getNextVersion(config, currentBranch).flatMap { nextVersion =>
+    getNextVersion(config, currentBranch, nextOpts.preRelease).flatMap { nextVersion =>
       nextOpts.format.map { format =>
-        Task.effect(Formatter(nextVersion, config).format(format))
+        Task.effect(Formatter(nextVersion, config, nextOpts.preRelease).format(format))
       }.getOrElse {
-        formatTag(config, nextVersion, nextOpts.prefix)
+        formatVersion(config, nextVersion, nextOpts.prefix, nextOpts.preRelease)
       }
     }
   }
 
-  def runTag(config: RunConfig, currentBranch: String) = {
+  def runTag(tagOpts: TagOpts, config: RunConfig, currentBranch: String) = {
     for {
-      nextVersion <- getNextVersion(config, currentBranch)
-      tag <- formatTag(config, nextVersion)
-      tagMessage = Formatter(nextVersion, config).format(config.tagMessageFormat)
+      nextVersion <- getNextVersion(config, currentBranch, tagOpts.preRelease)
+      tag <- formatVersion(config, nextVersion, formatAsTag = true, preRelease = tagOpts.preRelease)
+      tagMessage = Formatter(nextVersion, config, tagOpts.preRelease).format(config.tagMessageFormat)
       _ <- if (config.tag && nextVersion.commitCount > 0) {
         Git.tag(tag, tagMessage)
       } else {
@@ -70,11 +70,11 @@ object Main extends App {
     } yield ()
   }
 
-  def runPatch(config: RunConfig, currentBranch: String) = {
-    getNextVersion(config, currentBranch).flatMap { nextVersion =>
+  def runPatch(patchOpts: PatchOpts, config: RunConfig, currentBranch: String) = {
+    getNextVersion(config, currentBranch, patchOpts.preRelease).flatMap { nextVersion =>
       ZIO.foreach(config.patches) { patch =>
         val regex = patch.find.r
-        val replacement = Formatter(nextVersion, config).format(patch.replace)
+        val replacement = Formatter(nextVersion, config, patchOpts.preRelease).format(patch.replace)
         ZIO.foreach(patch.filePatterns) { filePattern =>
           for {
             cwd <- Path.currentWorkingDirectory
@@ -93,15 +93,15 @@ object Main extends App {
     }.unit
   }
 
-  def runInfo(config: RunConfig, currentBranch: String, includeBranchConfig: Boolean): RIO[Git with Blocking, String] = {
-    getNextVersion(config, currentBranch).map { nextVersion =>
-      val formatter = Formatter(nextVersion, config)
+  def runInfo(infoOpts: InfoOpts, config: RunConfig, currentBranch: String): RIO[Git with Blocking, String] = {
+    getNextVersion(config, currentBranch, infoOpts.preRelease).map { nextVersion =>
+      val formatter = Formatter(nextVersion, config, infoOpts.preRelease)
       val formats = formatter.formats.map { format =>
         val result = formatter.format(format.format)
         s"${format.name}=$result"
       }.mkString(System.lineSeparator())
 
-      if (includeBranchConfig) {
+      if (infoOpts.includeBranchConfig) {
         config.toString + System.lineSeparator() + System.lineSeparator() + formats
       } else {
         formats

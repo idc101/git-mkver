@@ -1,7 +1,7 @@
 {
-  "version": "0.5.1",
+  "version": "0.6.0+feature-pre-release.76ac5bd-RC+feature-pre-release.76ac5bd",
   "description": "Automatic Semantic Versioning for git based software development",
-  "url": "https://github.com/idc101/git-mkver/releases/download/v0.5.1/git-mkver-windows-amd64-0.5.1.zip",
+  "url": "https://github.com/idc101/git-mkver/releases/download/v0.6.0+feature-pre-release.76ac5bd-RC+feature-pre-release.76ac5bd/git-mkver-windows-amd64-0.6.0+feature-pre-release.76ac5bd-RC+feature-pre-release.76ac5bd.zip",
   "extract_dir": "git-mkver",
   "bin": "git-mkver.exe"
 }

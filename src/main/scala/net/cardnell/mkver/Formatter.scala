@@ -1,16 +1,6 @@
 package net.cardnell.mkver
 
 object Formatter {
-  val versionFormats = List(
-    Format("Version", "{Major}.{Minor}.{Patch}"),
-    Format("VersionPreRelease", "{Version}-{PreRelease}"),
-    Format("VersionBuildMetaData", "{Version}+{BuildMetaData}"),
-    Format("VersionPreReleaseBuildMetaData", "{Version}-{PreRelease}+{BuildMetaData}")
-  )
-  val builtInFormats = versionFormats ++ List(
-    Format("PreRelease", "{PreReleaseName}{PreReleaseNumber}")
-  )
-
   case class Formatter(formats: List[Format]) {
     def format(input: String, count: Int = 0): String = {
       if (count > 100) {
@@ -31,13 +21,24 @@ object Formatter {
     }
   }
 
-  def apply(version: VersionData, branchConfig: RunConfig): Formatter = {
+  def apply(version: VersionData, runConfig: RunConfig, preRelease: Boolean): Formatter = {
+    val versionFormat = (preRelease, runConfig.includeBuildMetaData) match {
+      case (false, false) => "{Version}"
+      case (true, false) => "{VersionPreRelease}"
+      case (false, true) => "{VersionBuildMetaData}"
+      case (true, true) => "{VersionPreReleaseBuildMetaData}"
+    }
     Formatter(List(
-      Format("Next", "{" + branchConfig.versionFormat + "}"),
-      Format("Tag", "{TagPrefix}{" + branchConfig.versionFormat + "}"),
-      Format("TagMessage", branchConfig.tagMessageFormat),
-      Format("PreReleaseName", branchConfig.preReleaseName),
-      Format("PreReleaseNumber", ""),
+      Format("Version", "{Major}.{Minor}.{Patch}"),
+      Format("VersionPreRelease", "{Version}-{PreRelease}"),
+      Format("VersionBuildMetaData", "{Version}+{BuildMetaData}"),
+      Format("VersionPreReleaseBuildMetaData", "{Version}-{PreRelease}+{BuildMetaData}"),
+      Format("BuildMetaData", runConfig.buildMetaDataFormat),
+      Format("Next", versionFormat),
+      Format("Tag", "{TagPrefix}{Next}"),
+      Format("TagMessage", runConfig.tagMessageFormat),
+      Format("PreRelease", runConfig.preReleaseFormat),
+      Format("PreReleaseNumber", version.preReleaseNumber.map(_.toString).getOrElse("")),
       Format("Major", version.major.toString),
       Format("Minor", version.minor.toString),
       Format("Patch", version.patch.toString),
@@ -49,10 +50,9 @@ object Formatter {
       Format("dd", version.date.getDayOfMonth.formatted("%02d")),
       Format("mm", version.date.getMonthValue.formatted("%02d")),
       Format("yyyy", version.date.getYear.toString),
-      Format("Tag?", branchConfig.tag.toString),
-      Format("TagPrefix", branchConfig.tagPrefix.toString)
-    ) ++ AppConfig.mergeFormats(branchConfig.formats, builtInFormats)
-      ++ envVariables()
+      Format("Tag?", runConfig.tag.toString),
+      Format("TagPrefix", runConfig.tagPrefix)
+    ) ++ envVariables()
       ++ azureDevOpsVariables())
   }
 

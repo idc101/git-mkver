@@ -4,19 +4,21 @@ import com.monovore.decline.{Command, Opts}
 import cats.implicits._
 
 object CommandLineArgs {
-  case class NextOpts(format: Option[String], prefix: Boolean)
-  case class TagOpts(format: Option[String])
-  case class PatchOpts(format: Option[String])
-  case class InfoOpts(includeBranchConfig: Boolean)
+  case class NextOpts(format: Option[String], preRelease: Boolean, prefix: Boolean)
+  case class TagOpts(preRelease: Boolean)
+  case class PatchOpts(preRelease: Boolean)
+  case class InfoOpts(preRelease: Boolean, includeBranchConfig: Boolean)
 
   val configFile: Opts[Option[String]] = Opts.option[String]("config", short = "c", metavar = "file", help = "Config file to load").orNone
   val format: Opts[Option[String]] = Opts.option[String]("format", short = "f", metavar = "string", help = "Format string for the version number").orNone
-  val prefix: Opts[Boolean] = Opts.flag("prefix", short = "p", help = "Include the tag prefix in the output").orFalse
+  val prefix: Opts[Boolean] = Opts.flag("tag-prefix", short = "t", help = "Include the tag prefix in the output").orFalse
+  val preRelease: Opts[Boolean] = Opts.flag("pre-release", short = "p", help = "Include the tag prefix in the output").orFalse
   val includeBranchConfig: Opts[Boolean] = Opts.flag("include-branch-config", short = "i", help = "Format string for the version number").orFalse
-  val nextOptions: Opts[NextOpts] = (format, prefix).mapN(NextOpts.apply)
-  val tagOptions: Opts[TagOpts] = format.map(TagOpts.apply)
-  val patchOptions: Opts[PatchOpts] = format.map(PatchOpts.apply)
-  val infoOptions: Opts[InfoOpts] = includeBranchConfig.map(InfoOpts.apply)
+
+  val nextOptions: Opts[NextOpts] = (format, preRelease, prefix).mapN(NextOpts.apply)
+  val tagOptions: Opts[TagOpts] = preRelease.map(TagOpts.apply)
+  val patchOptions: Opts[PatchOpts] = preRelease.map(PatchOpts.apply)
+  val infoOptions: Opts[InfoOpts] = (preRelease, includeBranchConfig).mapN(InfoOpts.apply)
 
   val nextCommand: Command[NextOpts] = Command("next", header = "Print the next version tag that would be used") {
     nextOptions

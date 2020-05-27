@@ -2,9 +2,8 @@ package net.cardnell.mkver
 
 import java.time.LocalDate
 
-import net.cardnell.mkver.GitMock.{CheckGitRepo, CommitInfoLog}
 import net.cardnell.mkver.MkVer._
-import zio.{Cause, ULayer}
+import zio.ULayer
 import zio.test.Assertion._
 import zio.test._
 import zio.test.mock.Expectation._
@@ -65,11 +64,11 @@ object MkVerSpec extends DefaultRunnableSpec {
         )))
       }
     ),
-    suite("formatTag")(
-      testM("should format tag") {
-        val versionData = VersionData(1,2,3,4,"feature/f1", "abcd", "abcdefg", LocalDate.now())
-        val runConfig = RunConfig("Version", true, "v", "release {Version}", "RC", commitMessageActions, IncrementAction.IncrementMinor, List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
-        assertM(formatTag(runConfig, versionData))(equalTo("v1.2.3"))
+    suite("formatVersion")(
+      testM("should format version") {
+        val versionData = VersionData(1,2,3, None, 4, "feature/f1", "abcd", "abcdefg", LocalDate.now())
+        val runConfig = RunConfig(true, "v", "release {Version}", "RC", "{Branch}", false, commitMessageActions, IncrementAction.IncrementMinor, List(Format("Version", "{Major}.{Minor}.{Patch}")), Nil)
+        assertM(formatVersion(runConfig, versionData, true, false))(equalTo("v1.2.3"))
       }
     ),
     suite("getFallbackVersionBumps")(

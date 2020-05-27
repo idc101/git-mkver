@@ -5,16 +5,26 @@ import zio.test.{DefaultRunnableSpec, assert, suite, test}
 
 object VersionSpec extends DefaultRunnableSpec {
   def spec = suite("VersionSpec")(
+    suite("getNextVersion")(
+      test("should return correctly") {
+        val vb = VersionBumps(true, true, true, 0)
+        assert(Version(1,2,3,Some("RC4")).getNextVersion(vb, false))(equalTo(NextVersion(1,2,3,None))) &&
+          assert(Version(1,2,3,Some("RC4")).getNextVersion(vb, true))(equalTo(NextVersion(1,2,3,Some(5)))) &&
+          assert(Version(1,2,3,Some("RC")).getNextVersion(vb, true))(equalTo(NextVersion(1,2,3,Some(1)))) &&
+          assert(Version(1,2,3,None).getNextVersion(vb, true))(equalTo(NextVersion(2,0,0,Some(1)))) &&
+          assert(Version(1,2,3,None).getNextVersion(vb, false))(equalTo(NextVersion(2,0,0,None)))
+      }
+    ),
     suite("bump")(
       test("should bump correctly") {
-        assert(Version(1,0,0).bump(VersionBumps(true, true, true, 0)))(equalTo(Version(2,0,0))) &&
-          assert(Version(1,0,0).bump(VersionBumps(false, true, true, 0)))(equalTo(Version(1,1,0))) &&
-          assert(Version(1,0,0).bump(VersionBumps(false, false, true, 0)))(equalTo(Version(1,0,1))) &&
-          assert(Version(1,0,0).bump(VersionBumps(false, false, false, 0)))(equalTo(Version(1,0,0))) &&
-          assert(Version(1,2,3).bump(VersionBumps(true, true, true, 0)))(equalTo(Version(2,0,0))) &&
-          assert(Version(1,2,3).bump(VersionBumps(false, true, true, 0)))(equalTo(Version(1,3,0))) &&
-          assert(Version(1,2,3).bump(VersionBumps(false, false, true, 0)))(equalTo(Version(1,2,4))) &&
-          assert(Version(1,2,3).bump(VersionBumps(false, false, false, 0)))(equalTo(Version(1,2,3)))
+        assert(Version(1,0,0).bump(VersionBumps(true, true, true, 0), Some(6)))(equalTo(NextVersion(2,0,0,Some(6)))) &&
+          assert(Version(1,0,0).bump(VersionBumps(false, true, true, 0), Some(6)))(equalTo(NextVersion(1,1,0,Some(6)))) &&
+          assert(Version(1,0,0).bump(VersionBumps(false, false, true, 0), Some(6)))(equalTo(NextVersion(1,0,1,Some(6)))) &&
+          assert(Version(1,0,0).bump(VersionBumps(false, false, false, 0), Some(6)))(equalTo(NextVersion(1,0,0,Some(6)))) &&
+          assert(Version(1,2,3).bump(VersionBumps(true, true, true, 0), Some(6)))(equalTo(NextVersion(2,0,0,Some(6)))) &&
+          assert(Version(1,2,3).bump(VersionBumps(false, true, true, 0), Some(6)))(equalTo(NextVersion(1,3,0,Some(6)))) &&
+          assert(Version(1,2,3).bump(VersionBumps(false, false, true, 0), Some(6)))(equalTo(NextVersion(1,2,4,Some(6)))) &&
+          assert(Version(1,2,3).bump(VersionBumps(false, false, false, 0), Some(6)))(equalTo(NextVersion(1,2,3,Some(6))))
       }
     ),
     suite("parseTag")(

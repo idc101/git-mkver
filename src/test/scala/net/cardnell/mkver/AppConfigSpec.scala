@@ -5,16 +5,16 @@ import zio.test.Assertion._
 
 object AppConfigSpec extends DefaultRunnableSpec {
   def spec = suite("AppConfigSpec") (
-    suite("getBranchConfig") (
+    suite("getRunConfig") (
       testM("master should return master config") {
         assertM(AppConfig.getRunConfig(None, "master"))(
-          hasField("versionFormat", _.versionFormat, equalTo("Version"))
+          hasField("tag", _.tag, equalTo(true))
         )
       },
       testM("feat should return .* config") {
         assertM(AppConfig.getRunConfig(None, "feat"))(
-          hasField("versionFormat", (c: RunConfig) => c.versionFormat, equalTo("VersionBuildMetaData")) &&
-            hasField("formats", (c: RunConfig) => c.formats, contains(Format("BuildMetaData", "{Branch}.{ShortHash}")))
+          hasField("tag", (c: RunConfig) => c.tag, equalTo(false)) &&
+            hasField("buildMetaDataFormat", (c: RunConfig) => c.buildMetaDataFormat, equalTo("{Branch}.{ShortHash}"))
         )
       }
     ),
@@ -25,11 +25,6 @@ object AppConfigSpec extends DefaultRunnableSpec {
         val f3 = Format("f3", "v3")
         val f1b = Format("f1", "v4")
         assert(AppConfig.mergeFormats(List(f1, f3), List(f1b, f2)))(equalTo(List(f1b, f2, f3).sortBy(_.name)))
-      }
-    ),
-    suite("mergeFormat")(
-      testM("should merge formats on real config") {
-        assertM(AppConfig.getRunConfig(None, "master").map(_.formats))(equalTo(List(Format("BuildMetaData","{Branch}.{ShortHash}"))))
       }
     )
   )

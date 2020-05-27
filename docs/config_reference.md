@@ -14,24 +14,26 @@ The application uses the HOCON format. More details on the specification can be 
 ## mkver.conf
 
 ```hocon
-# Versioning mode to be used in this repository
-# Can be one of SemVer | SemVerPreRelease | YearMonth | YearMonthPreRelease
-mode: SemVer
 # prefix for tags in git
 tagPrefix: v
 # defaults are used if they are not overriden by a branch config
 defaults {
-  # format string to be used for versioning the repo
-  # the version must be a valid SemVer so the format must be one of:
-  # Version | VersionPreRelease | VersionBuildMetaData | VersionPreReleaseBuildMetaData
-  versionFormat: VersionBuildMetaData
   # whether to really tag the branch when `git mkver tag` is called
   tag: false
   # message for annotated version tags in git
   tagMessageFormat: "release {Tag}"
-  # name of the pre-release e.g. alpha, beta, rc
-  preReleaseName: "rc"
-  # action to take if after analyzing all commit messages since the last tag
+  # format tring for the pre-release. The format must end with {PreReleaseNumber} if it is used.
+  # Examples:
+  # * alpha
+  # * SNAPSHOT
+  # * RC{PreReleaseNumber}
+  # * pre-{CommitsSinceTag}
+  preReleaseFormat: "RC{PreReleaseNumber}"
+  # format string to be used for the build metadata
+  buildMetaDataFormat: "{Branch}.{ShortHash}"
+  # whether to include the build metadata in the Semantic Version when next or tag are called
+  includeBuildMetaData: true
+  # action to take, if after analyzing all commit messages since the last tag
   # no increment instructions can be found. Options are:
   # * Fail - application will exit
   # * IncrementMajor - bump the major version
@@ -46,10 +48,6 @@ defaults {
   ]
   # list of formats
   formats: [
-    {
-      name: BuildMetaData
-      format: "{Branch}.{ShortHash}"
-    }
     {
       name: Docker
       format: "{Version}"
@@ -67,7 +65,7 @@ branches: [
   {
     pattern: "master"
     tag: true
-    tagFormat: Version
+    includeBuildMetaData: false
   }
   {
     pattern: ".*"

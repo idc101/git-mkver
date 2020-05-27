@@ -28,6 +28,8 @@ The following built in formats conform to the SemVer spec. They cannot be overri
 | `Major` | Version major number |
 | `Minor` | Version minor number |
 | `Patch` | Version patch number |
+| `PreRelease` | Pre-release |
+| `BuildMetaData` | BuildMetaData |
 | `Branch` | Branch name |
 | `ShortHash` | Short Hash |
 | `FullHash` | Full Hash |

@@ -2,8 +2,8 @@
 set -e
 
 # Note requires a previous version of git-mkver to have been built and on the path!
-git mkver patch
-version=`git mkver next`
+git mkver -c git-mkver.conf patch
+version=`git mkver -c git-mkver.conf next`
 
 sbt assembly
 

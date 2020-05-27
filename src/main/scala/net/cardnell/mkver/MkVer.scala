@@ -36,30 +36,29 @@ object MkVer {
     commitInfos.find(_.tags.nonEmpty).map(ci => LastVersion(ci.fullHash, ci.commitsBeforeHead, ci.tags.head))
   }
 
-  def formatTag(config: RunConfig, versionData: VersionData, formatAsTag: Boolean = true): Task[String] = {
-    val allowedFormats = Formatter.versionFormats.map(_.name)
-    if (!allowedFormats.contains(config.versionFormat)) {
-      IO.fail(MkVerException(s"versionFormat (${config.versionFormat}) must be one of: ${allowedFormats.mkString(", ")}"))
-    } else {
+  def formatVersion(config: RunConfig, versionData: VersionData, formatAsTag: Boolean, preRelease: Boolean): Task[String] = {
+    Task.effect {
+      val formatter = Formatter(versionData, config, preRelease)
       if (formatAsTag) {
-        Task.effect(Formatter(versionData, config).format("{Tag}"))
+        formatter.format("{Tag}")
       } else {
-        Task.effect(Formatter(versionData, config).format("{Next}"))
+        formatter.format("{Next}")
       }
     }
   }
 
-  def getNextVersion(config: RunConfig, currentBranch: String): RIO[Git with Blocking, VersionData] = {
+  def getNextVersion(config: RunConfig, currentBranch: String, preRelease: Boolean): RIO[Git with Blocking, VersionData] = {
     for {
       commitInfos <- getCommitInfos(config.tagPrefix)
       lastVersionOpt = getLastVersion(commitInfos)
       bumps <- getVersionBumps(lastVersionOpt, config.commitMessageActions, config.whenNoValidCommitMessages)
-      nextVersion = lastVersionOpt.map(_.version.bump(bumps)).getOrElse(Version())
+      nextVersion = lastVersionOpt.map(_.version.getNextVersion(bumps, preRelease)).getOrElse(NextVersion(0, 1, 0, if (preRelease) Some(1) else None))
     } yield {
       VersionData(
         major = nextVersion.major,
         minor = nextVersion.minor,
         patch = nextVersion.patch,
+        preReleaseNumber = nextVersion.preReleaseNumber,
         commitCount = lastVersionOpt.map(_.commitsBeforeHead).getOrElse(commitInfos.length),
         branch = currentBranch,
         commitHashShort = commitInfos.headOption.map(_.shortHash).getOrElse(""),

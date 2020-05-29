@@ -3,7 +3,7 @@ package net.cardnell.mkver
 import cats.implicits._
 import com.typesafe.config.ConfigFactory
 import net.cardnell.mkver.IncrementAction.IncrementMinor
-import zio.Task
+import zio.{Task, ZIO}
 import zio.config.ConfigDescriptor.{string, _}
 import zio.config._
 import zio.config.typesafe.TypesafeConfigSource
@@ -173,20 +173,20 @@ object AppConfig {
   def getRunConfig(configFile: Option[String], currentBranch: String): Task[RunConfig] = {
     for {
       appConfig <- getAppConfig(configFile)
-      defaults = appConfig.defaults.getOrElse(defaultDefaultBranchConfig)
-      branchConfig = appConfig.branches.getOrElse(defaultBranchConfigs)
+      defaults = appConfig.flatMap(_.defaults).getOrElse(defaultDefaultBranchConfig)
+      branchConfig = appConfig.flatMap(_.branches).getOrElse(defaultBranchConfigs)
         .find { bc => currentBranch.matches(bc.pattern) }
       patchNames = branchConfig.flatMap(_.patches).getOrElse(defaults.patches)
-      patchConfigs <- getPatchConfigs(appConfig, patchNames)
+      patchConfigs <- getPatchConfigs(appConfig.flatMap(_.patches).getOrElse(Nil), patchNames)
     } yield {
       RunConfig(
         tag = branchConfig.flatMap(_.tag).getOrElse(defaults.tag),
-        tagPrefix = appConfig.tagPrefix.getOrElse("v"),
+        tagPrefix = appConfig.flatMap(_.tagPrefix).getOrElse("v"),
         tagMessageFormat = branchConfig.flatMap(_.tagMessageFormat).getOrElse(defaults.tagMessageFormat),
         preReleaseFormat = branchConfig.flatMap(_.preReleaseFormat).getOrElse(defaults.preReleaseFormat),
         buildMetaDataFormat = branchConfig.flatMap(_.buildMetaDataFormat).getOrElse(defaults.buildMetaDataFormat),
         includeBuildMetaData = branchConfig.flatMap(_.includeBuildMetaData).getOrElse(defaults.includeBuildMetaData),
-        commitMessageActions = mergeCommitMessageActions(defaultCommitMessageActions, appConfig.commitMessageActions.getOrElse(Nil)),
+        commitMessageActions = mergeCommitMessageActions(defaultCommitMessageActions, appConfig.flatMap(_.commitMessageActions).getOrElse(Nil)),
         whenNoValidCommitMessages = branchConfig.flatMap(_.whenNoValidCommitMessages).getOrElse(defaults.whenNoValidCommitMessages),
         formats = mergeFormats(defaults.formats, branchConfig.flatMap(_.formats).getOrElse(Nil)),
         patches = patchConfigs
@@ -206,8 +206,8 @@ object AppConfig {
     overridesMap.values.foldLeft(startMap)((a, n) => a.+((getName(n), n))).values.toList.sortBy(getName(_))
   }
 
-  def getPatchConfigs(appConfig: AppConfig, patchNames: List[String]): Task[List[PatchConfig]] = {
-    val allPatchConfigs = appConfig.patches.getOrElse(Nil).map(it => (it.name, it)).toMap
+  def getPatchConfigs(patches: List[PatchConfig], patchNames: List[String]): Task[List[PatchConfig]] = {
+    val allPatchConfigs = patches.map(it => (it.name, it)).toMap
     Task.foreach(patchNames) { c =>
       allPatchConfigs.get(c) match {
         case Some(p) => Task.succeed(p)
@@ -216,8 +216,8 @@ object AppConfig {
     }
   }
 
-  def getAppConfig(configFile: Option[String]): Task[AppConfig] = {
-    val file = configFile.map { cf =>
+  def getAppConfig(configFile: Option[String]): Task[Option[AppConfig]] = {
+    val fileIO = configFile.map { cf =>
       for {
         path <- Path(cf)
         exists <- Files.exists(path)
@@ -239,19 +239,17 @@ object AppConfig {
       } yield r
     }
 
-    file.flatMap { of =>
-      of.map { f =>
-        TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(f)))
-        // TODO Use this?
-        //TypesafeConfig.fromHoconFile(new java.io.File(c), AppConfig.appConfigDesc)
-      }.getOrElse {
-        TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.load("reference.conf"))
-      }.fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
-    }.flatMap { source: ConfigSource =>
-      read(AppConfig.appConfigDesc from source) match {
-        case Left(value) => Task.fail(MkVerException("Unable to parse config: " + value))
-        case Right(result) => Task.succeed(result)
-      }
+    fileIO.flatMap { fileOpt =>
+      ZIO.foreach(fileOpt)(tryLoadAppConfig)
     }
+  }
+
+  def tryLoadAppConfig(file: String): Task[AppConfig] = {
+    for {
+      configSource <- TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(file)))
+        .fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
+      appConfig <- read(AppConfig.appConfigDesc from configSource)
+        .fold(l => Task.fail(MkVerException("Unable to parse config: " + l.prettyPrint())), r => Task.succeed(r))
+    } yield appConfig
   }
 }

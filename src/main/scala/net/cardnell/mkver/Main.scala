@@ -13,10 +13,10 @@ case class MkVerException(message: String) extends Exception {
 }
 
 object Main extends App {
-  def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
+  def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] =
     appLogic(args)
       .provideCustomLayer(Blocking.live >>> Git.live(None))
-      .fold(_ => 1, _ => 0)
+      .fold(_ => ExitCode.failure, _ => ExitCode.success)
 
   def appLogic(args: List[String]) = {
     mainImpl(args)

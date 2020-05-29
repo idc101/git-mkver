@@ -3,7 +3,7 @@
 ## Linux
 
 ```bash
-curl -L https://github.com/idc101/git-mkver/releases/download/v0.6.0+feature-pre-release.76ac5bd-RC+feature-pre-release.76ac5bd/git-mkver-darwin-amd64-0.6.0+feature-pre-release.76ac5bd-RC+feature-pre-release.76ac5bd.tar.gz | tar xvz
+curl -L https://github.com/idc101/git-mkver/releases/download/v1.0.0/git-mkver-darwin-amd64-1.0.0.tar.gz | tar xvz
 sudo mv git-mkver /usr/local/bin
 ```
 

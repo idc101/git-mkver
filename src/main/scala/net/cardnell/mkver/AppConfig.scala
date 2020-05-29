@@ -55,7 +55,7 @@ object BranchConfig {
     val tagMessageFormat = "release {Tag}"
     val preReleaseFormat = "RC{PreReleaseNumber}"
     val buildMetaDataFormat = "{Branch}.{ShortHash}"
-    val includeBuildMetaData = false
+    val includeBuildMetaData = true
     val whenNoValidCommitMessages = IncrementMinor
     val patches = Nil
     val formats = Nil
@@ -159,7 +159,10 @@ object AppConfig {
     BranchConfig.Defaults.formats
   )
   val defaultBranchConfigs: List[BranchConfig] = List(
-    BranchConfig("master", Some(true), None, None, None, Some(false), None, None, None)
+    BranchConfig("master", Some(true), None, None, None, Some(false), None, None, None),
+    BranchConfig("rel[/-].*", Some(true), None, None, None, Some(false), None, None, None),
+    BranchConfig("release[/-].*", Some(true), None, None, None, Some(false), None, None, None),
+    BranchConfig("hotfix[/-].*", Some(true), None, None, None, Some(false), None, None, None)
   )
   val defaultCommitMessageActions: List[CommitMessageAction] = List(
     CommitMessageAction("BREAKING CHANGE", IncrementAction.IncrementMajor),

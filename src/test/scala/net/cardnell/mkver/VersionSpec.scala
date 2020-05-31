@@ -13,11 +13,30 @@ object VersionSpec extends DefaultRunnableSpec {
           assert(Version(1,2,3,Some("RC")).getNextVersion(vb, true))(equalTo(NextVersion(1,2,3,Some(1)))) &&
           assert(Version(1,2,3,None).getNextVersion(vb, true))(equalTo(NextVersion(2,0,0,Some(1)))) &&
           assert(Version(1,2,3,None).getNextVersion(vb, false))(equalTo(NextVersion(2,0,0,None)))
+      },
+      test("should return correctly with commit override") {
+        val vb = VersionBumps(true, true, true, 0, None, Some(Version(3,4,5)))
+        assert(Version(1,2,3,Some("RC4")).getNextVersion(vb, false))(equalTo(NextVersion(3,4,5,None))) &&
+          assert(Version(1,2,3,Some("RC4")).getNextVersion(vb, true))(equalTo(NextVersion(3,4,5,Some(1)))) &&
+          assert(Version(1,2,3,Some("RC")).getNextVersion(vb, true))(equalTo(NextVersion(3,4,5,Some(1)))) &&
+          assert(Version(1,2,3,None).getNextVersion(vb, true))(equalTo(NextVersion(3,4,5,Some(1)))) &&
+          assert(Version(1,2,3,None).getNextVersion(vb, false))(equalTo(NextVersion(3,4,5,None)))
+      },
+      test("should return correctly with branch override") {
+        val vb = VersionBumps(true, true, true, 0, Some(Version(3,4,5)), None)
+        assert(Version(1,2,3,Some("RC4")).getNextVersion(vb, false))(equalTo(NextVersion(3,4,5,None))) &&
+          assert(Version(1,2,3,Some("RC4")).getNextVersion(vb, true))(equalTo(NextVersion(3,4,5,Some(1)))) &&
+          assert(Version(1,2,3,Some("RC")).getNextVersion(vb, true))(equalTo(NextVersion(3,4,5,Some(1)))) &&
+          assert(Version(1,2,3,None).getNextVersion(vb, true))(equalTo(NextVersion(3,4,5,Some(1)))) &&
+          assert(Version(1,2,3,None).getNextVersion(vb, false))(equalTo(NextVersion(3,4,5,None)))
       }
     ),
     suite("bump")(
       test("should bump correctly") {
-        assert(Version(1,0,0).bump(VersionBumps(true, true, true, 0), Some(6)))(equalTo(NextVersion(2,0,0,Some(6)))) &&
+        assert(Version(1,0,0).bump(VersionBumps(true, true, true, 0, Some(Version(3,0,0)), None), Some(6)))(equalTo(NextVersion(3,0,0,Some(6)))) &&
+          assert(Version(1,0,0).bump(VersionBumps(true, true, true, 0, None, Some(Version(4,0,0))), Some(6)))(equalTo(NextVersion(4,0,0,Some(6)))) &&
+          assert(Version(1,0,0).bump(VersionBumps(true, true, true, 0, Some(Version(3,0,0)), Some(Version(4,0,0))), Some(6)))(equalTo(NextVersion(4,0,0,Some(6)))) &&
+          assert(Version(1,0,0).bump(VersionBumps(true, true, true, 0), Some(6)))(equalTo(NextVersion(2,0,0,Some(6)))) &&
           assert(Version(1,0,0).bump(VersionBumps(false, true, true, 0), Some(6)))(equalTo(NextVersion(1,1,0,Some(6)))) &&
           assert(Version(1,0,0).bump(VersionBumps(false, false, true, 0), Some(6)))(equalTo(NextVersion(1,0,1,Some(6)))) &&
           assert(Version(1,0,0).bump(VersionBumps(false, false, false, 0), Some(6)))(equalTo(NextVersion(1,0,0,Some(6)))) &&

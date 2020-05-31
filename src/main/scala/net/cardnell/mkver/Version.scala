@@ -6,9 +6,7 @@ sealed trait VersionMode
 
 object VersionMode {
   case object SemVer extends VersionMode
-  case object SemVerPreRelease extends VersionMode
   case object YearMonth extends VersionMode
-  case object YearMonthPreRelease extends VersionMode
 
   def read(value: String): Either[String, VersionMode] =
     value match {
@@ -46,7 +44,8 @@ case class Version(major: Int,
     (preRelease, bumpPreRelease) match {
       case (Some(pr), false) =>
         // Generating a non-pre-release version after a pre-release is always the version without pre-release
-        NextVersion(this.major, this.minor, this.patch, None)
+        // ... unless an override has been specified.
+        bump(bumps.copy(major = false, minor = false, patch = false), None)
       case (Some(pr), true) =>
         // Last version was a pre-release and next version is also a pre-release
         // Parse Last PreRelease Number
@@ -55,7 +54,14 @@ case class Version(major: Int,
           case preReleaseNumber(lastPreReleaseNumber) => Some(lastPreReleaseNumber.toInt + 1)
           case _ => Some(1)
         }
-        NextVersion(this.major, this.minor, this.patch, nextPreReleaseNumber)
+        if (bumps.branchNameOverride.exists(!equalsVersionCore(_)) ||
+            bumps.commitOverride.exists(!equalsVersionCore(_))){
+          // there is an override to a different version - reset the pre-release number
+          bump(bumps, Some(1))
+        } else {
+          // No override
+          NextVersion(this.major, this.minor, this.patch, nextPreReleaseNumber)
+        }
       case (None, true) =>
         // Last version was not a pre-release but this version is
         // Bump the version number and add in the pre-release
@@ -71,12 +77,17 @@ case class Version(major: Int,
 
   def bump(bumps: VersionBumps, newPreRelease: Option[Int]): NextVersion = {
     bumps match {
-      case VersionBumps(true, _, _, _) => NextVersion(this.major + 1, 0, 0, newPreRelease)
-      case VersionBumps(false, true, _, _) => NextVersion(this.major, this.minor + 1, 0, newPreRelease)
-      case VersionBumps(false, false, true, _) => NextVersion(this.major, this.minor, this.patch + 1, newPreRelease)
+      case VersionBumps(_, _, _, _, _, Some(commitOverride)) => NextVersion(commitOverride.major, commitOverride.minor, commitOverride.patch, newPreRelease)
+      case VersionBumps(_, _, _, _, Some(branchNameOverride), _) => NextVersion(branchNameOverride.major, branchNameOverride.minor, branchNameOverride.patch, newPreRelease)
+      case VersionBumps(true, _, _, _, _, _) => NextVersion(this.major + 1, 0, 0, newPreRelease)
+      case VersionBumps(false, true, _, _, _, _) => NextVersion(this.major, this.minor + 1, 0, newPreRelease)
+      case VersionBumps(false, false, true, _, _, _) => NextVersion(this.major, this.minor, this.patch + 1, newPreRelease)
       case _ => NextVersion(this.major, this.minor, this.patch, newPreRelease)
     }
   }
+
+  def equalsVersionCore(other: Version): Boolean =
+    major == other.major && minor == other.minor && patch == other.patch
 }
 
 object Version {
@@ -97,7 +108,18 @@ case class NextVersion(major: Int,
                        patch: Int,
                        preReleaseNumber: Option[Int] = None)
 
-case class VersionBumps(major: Boolean = false, minor: Boolean = false, patch: Boolean = false, commitCount: Int = 0) {
+case class VersionBumps(major: Boolean = false,
+                        minor: Boolean = false,
+                        patch: Boolean = false,
+                        commitCount: Int = 0,
+                        branchNameOverride: Option[Version] = None,
+                        commitOverride: Option[Version] = None) {
+  def withBranchNameOverride(version: Option[Version]): VersionBumps =
+    this.copy(branchNameOverride = version)
+
+  def withCommitOverride(version: Version): VersionBumps =
+    this.copy(commitOverride = Some(version))
+
   def bump(incrementAction: IncrementAction): VersionBumps = {
     incrementAction match {
       case IncrementAction.IncrementMajor => this.copy(major = true)

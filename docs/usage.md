@@ -64,6 +64,8 @@ $ git mkver tag
 
 ## Controlling the next version number
 
+### Commit Messages
+
 The next version number will be determined based on the commit messages since
 the last version was tagged. The commit messages that trigger different version
 increments are [configurable](config_reference) but by default they are as follows:
@@ -81,6 +83,29 @@ increments are [configurable](config_reference) but by default they are as follo
 All commit messages since the last tagged message are analyzed and the greatest
 version increment is used. For example if one commit is a minor change and one is
 a major change then the major version will be incremented.
+
+### Overrides
+
+You can explicitly set the next version by including `next-version: <VERSION>` in
+a commit message. For example if previous commit message made an increment to the
+major version such that it would be `2.0.0`, number you could undo it like this:
+
+```
+next-version: 1.5.1
+```
+
+### Branch Names
+
+Release and hotfix branches are often used for specific releases and as such will override
+the commit messages to set a specific version number. The following branch names will fix
+the version number for that branch to `1.2.3`:
+
+* `rel-1.2.3`
+* `rel/1.2.3`
+* `release-1.2.3`
+* `release/1.2.3`
+* `hotfix-1.2.3`
+* `hotfix/1.2.3`
 
 ## Common arguments
 

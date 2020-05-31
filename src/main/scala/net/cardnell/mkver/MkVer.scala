@@ -51,7 +51,7 @@ object MkVer {
     for {
       commitInfos <- getCommitInfos(config.tagPrefix)
       lastVersionOpt = getLastVersion(commitInfos)
-      bumps <- getVersionBumps(lastVersionOpt, config.commitMessageActions, config.whenNoValidCommitMessages)
+      bumps <- getVersionBumps(currentBranch, lastVersionOpt, config.commitMessageActions, config.whenNoValidCommitMessages)
       nextVersion = lastVersionOpt.map(_.version.getNextVersion(bumps, preRelease)).getOrElse(NextVersion(0, 1, 0, if (preRelease) Some(1) else None))
     } yield {
       VersionData(
@@ -68,7 +68,8 @@ object MkVer {
     }
   }
 
-  def getVersionBumps(lastVersion: Option[LastVersion],
+  def getVersionBumps(currentBranch: String,
+                      lastVersion: Option[LastVersion],
                       commitMessageActions: List[CommitMessageAction],
                       whenNoValidCommitMessages: IncrementAction): RIO[Git with Blocking, VersionBumps] = {
     def logToBumps(log: String): IO[MkVerException, VersionBumps] = {
@@ -80,11 +81,19 @@ object MkVer {
       }
     }
 
-    lastVersion match {
+    val bumps = lastVersion match {
       case None => Git.fullLog(None).flatMap(logToBumps) // No previous version
       case Some(LastVersion(_, 0, _)) => RIO.succeed(VersionBumps.none) // This commit is a version
       case Some(lv) => Git.fullLog(Some(lv.commitHash)).flatMap(logToBumps)
     }
+
+    val releaseBranch = "^(hotfix|rel|release)[-/](\\d+\\.\\d+\\.\\d+)$".r
+    val branchNameOverride = currentBranch match {
+      case releaseBranch(_, v) => Version.parseTag(v, "")
+      case _ => None
+    }
+
+    bumps.map(_.withBranchNameOverride(branchNameOverride))
   }
 
   def getFallbackVersionBumps(whenNoValidCommitMessages: IncrementAction, logBumps: VersionBumps): IO[MkVerException, VersionBumps] = {
@@ -96,6 +105,7 @@ object MkVer {
   }
 
   def calcBumps(lines: List[String], commitMessageActions: List[CommitMessageAction], bumps: VersionBumps): VersionBumps = {
+    val overrideRegex = "next-version: *(\\d+\\.\\d+\\.\\d+)".r
     if (lines.isEmpty) {
       bumps
     } else {
@@ -103,14 +113,20 @@ object MkVer {
       if (line.startsWith("commit")) {
         calcBumps(lines.tail, commitMessageActions, bumps.bumpCommits())
       } else if (line.startsWith("    ")) {
-        val newBumps = commitMessageActions.flatMap { cma =>
+        // check for override text
+        val newBumps = line match {
+          case overrideRegex(v) => Version.parseTag(v, "").map(bumps.withCommitOverride).getOrElse(bumps)
+          case _ => bumps
+        }
+        // check for bump messages
+        val newBumps2 = commitMessageActions.flatMap { cma =>
           if (cma.pattern.r.findFirstIn(line).nonEmpty) {
-            Some(bumps.bump(cma.action))
+            Some(newBumps.bump(cma.action))
           } else {
             None
           }
-        }.headOption.getOrElse(bumps)
-        calcBumps(lines.tail, commitMessageActions, newBumps)
+        }.headOption.getOrElse(newBumps)
+        calcBumps(lines.tail, commitMessageActions, newBumps2)
       } else {
         calcBumps(lines.tail, commitMessageActions, bumps)
       }

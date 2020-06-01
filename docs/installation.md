@@ -20,7 +20,7 @@ brew install https://raw.githubusercontent.com/idc101/git-mkver/master/etc/Formu
 Install with [scoop](https://scoop.sh):
 
 ```cmd
-scoop install https://raw.githubusercontent.com/idc101/git-mkver/master/etc/Formula/git-mkver.rb
+scoop install https://raw.githubusercontent.com/idc101/git-mkver/master/etc/scoop/git-mkver.json
 ```
 
 ## Manual

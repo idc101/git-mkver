@@ -68,7 +68,9 @@ $ git mkver tag
 
 The next version number will be determined based on the commit messages since
 the last version was tagged. The commit messages that trigger different version
-increments are [configurable](config_reference) but by default they are as follows:
+increments are [configurable](config_reference) but by default they are based on
+the [Conventional Commit](https://www.conventionalcommits.org/) specification
+as follows:
 
 - Commits containing the following will increment the _major_ version:
   - `major:` or `major(...):`
@@ -79,6 +81,9 @@ increments are [configurable](config_reference) but by default they are as follo
 - Commits containing the following will increment the _patch_ version:
   - `patch:` or `patch(...):`
   - `fix:` or `fix(...):`
+
+Other conventional commits such as `build`, `chore`, `docs` will not increment
+the version number.
 
 All commit messages since the last tagged message are analyzed and the greatest
 version increment is used. For example if one commit is a minor change and one is
@@ -119,7 +124,7 @@ you can use the `patch` command. The files to be patched and the replacements ar
 defined in the `mkver.conf` [config](config) file.
 
 For example, suppose you have the version number in a code file:
-```
+```scala
 object VersionInfo {
     val version = "1.0.0"
 }
@@ -130,8 +135,12 @@ and you define a patch as follows in your config file:
   {
     name: Readme
     filePatterns: ["version.scala"]
-    find: "val version = \".*\""
-    replace: "val version = \"{Next}\""
+    replacements: [
+      {
+        find: "val version = \"{VersionRegex}\""
+        replace: "val version = \"{Next}\""
+      }
+    ]
   }
 ```
 

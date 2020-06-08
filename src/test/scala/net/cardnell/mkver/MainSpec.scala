@@ -1,19 +1,15 @@
 package net.cardnell.mkver
 
-import zio.test.Assertion.equalTo
+import zio.test.Assertion._
 import zio.test.mock.Expectation._
 import zio.test.mock._
 import zio.test.{DefaultRunnableSpec, assertM, suite, testM}
 import zio.{Has, ULayer, URLayer, ZLayer}
 import Main.mainImpl
+import zio.console.Console
 
 // TODO >> @Mockable[Git.Service]
 object GitMock extends Mock[Git] {
-//  sealed trait Tag[I, A] extends Method[Git, I, A] {
-//    def envBuilder: URLayer[Has[Proxy], Git] =
-//      GitMock.envBuilder
-//  }
-
   object CurrentBranch extends Effect[Unit, Nothing, String]
   object FullLog extends Effect[Option[String], Nothing, String]
   object CommitInfoLog extends Effect[Unit, Nothing, String]
@@ -36,14 +32,15 @@ object MainSpec extends DefaultRunnableSpec {
   def spec = suite("MainSpec")(
     suite("main") (
       testM("next should return") {
-        val mockEnv: ULayer[Git] = (
+        val mockEnv: ULayer[Git with Console] = (
           GitMock.CheckGitRepo(unit) ++
             GitMock.CurrentBranch(value("master")) ++
             GitMock.CommitInfoLog(value("")) ++
-            GitMock.FullLog(equalTo(None), value(""))
+            GitMock.FullLog(equalTo(None), value("")) ++
+            MockConsole.PutStrLn(equalTo("0.1.0"))
           )
         val result = mainImpl(List("next")).provideCustomLayer(mockEnv)
-        assertM(result)(equalTo("0.1.0"))
+        assertM(result)(isUnit)
       },
       testM("tag should return") {
         val mockEnv: ULayer[Git] = (
@@ -53,9 +50,7 @@ object MainSpec extends DefaultRunnableSpec {
             GitMock.FullLog(equalTo(None), value(""))
           )
         val result = mainImpl(List("tag")).provideCustomLayer(mockEnv)
-        assertM(result)(
-          equalTo("")
-        )
+        assertM(result)(isUnit)
       }
     )
   )

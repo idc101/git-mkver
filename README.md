@@ -12,19 +12,16 @@ For more information head to the [project site](https://idc101.github.io/git-mkv
     - Branch names
     - Manual tagging
 - Next version conforms to [Semantic Versioning](https://semver.org/) scheme
-- Patch the next version into the build:
-    - Java
-    - C#
-    - Many others, fully configurable
-- Tag the current commit with the next version
+- Patch the next version into source files using a configurable find and replace system
+- Tag the current commit with the next version number
 
-All of this can be configured based on the branch name so release/master branches get different
-version numbers to develop or feature branches.
+Works out of the box with trunk based development, GitFlow and GithubFlow. Alternatively all of this can be configured
+based on the branch name so release/master branches get different version numbers to develop or feature branches.
 
 ## Installation
 
-Download the binary for your os from the [releases](https://github.com/idc101/git-mkver/releases) page and copy to somewhere on your path.
-
+[Install](https://idc101.github.io/git-mkver/installation) with brew, scoop or simply download the binary for your os
+from the [releases](https://github.com/idc101/git-mkver/releases) page and copy somewhere on your path.
 
 ## Usage
 

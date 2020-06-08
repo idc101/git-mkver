@@ -1,35 +1,40 @@
 package net.cardnell.mkver
 
+import net.cardnell.mkver.Main.mainImpl
 import zio.blocking.Blocking
+import zio.console.Console
 import zio.test.Assertion._
 import zio.test._
-import zio.{RIO, ZIO}
-import Main.mainImpl
+import zio.test.mock.MockConsole
+import zio.{RIO, ULayer, ZIO}
 
 object EndToEndTests extends DefaultRunnableSpec {
   def spec = suite("trunk based semver development")(
     testM("no tags should return version 0.1.0") {
+      val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("0.1.0"))
       val result = test { tempDir =>
         for {
           _ <- fix("code1.py", tempDir)
-          run <- run(tempDir, "next")
+          run <- run(tempDir, "next").provideCustomLayer(mockEnv)
         } yield run
       }
-      assertM(result)(equalTo("0.1.0"))
+      assertM(result)(isUnit)
     },
     testM("master advances correctly and should return version 0.1.1") {
+      val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("0.1.1"))
       val result = test { tempDir =>
         for {
           _ <- fix("code1.py", tempDir)
           _ <- run(tempDir, "tag")
           _ <- fix("code2.py", tempDir)
           //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-          run <- run(tempDir, "next")
+          run <- run(tempDir, "next").provideCustomLayer(mockEnv)
         } yield run
       }
-      assertM(result)(equalTo("0.1.1"))
+      assertM(result)(isUnit)
     },
     testM("feature branch (+minor) and master (+major) both advance version and should return version 1.0.0") {
+      val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("1.0.0"))
       val result = test { tempDir =>
         for {
           _ <- fix("code1.py", tempDir)
@@ -40,12 +45,13 @@ object EndToEndTests extends DefaultRunnableSpec {
           _ <- major("code3.py", tempDir)
           _ <- merge("feature/f1", tempDir)
           //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-          run <- run(tempDir, "next")
+          run <- run(tempDir, "next").provideCustomLayer(mockEnv)
         } yield run
       }
-      assertM(result)(equalTo("1.0.0"))
+      assertM(result)(isUnit)
     },
     testM("feature branch (+major) and master (+minor) both advance version and should return version 1.0.0") {
+      val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("1.0.0"))
       val result = test { tempDir =>
         for {
           _ <- fix("code1.py", tempDir)
@@ -56,12 +62,13 @@ object EndToEndTests extends DefaultRunnableSpec {
           _ <- feat("code3.py", tempDir)
           _ <- merge("feature/f1", tempDir)
           //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-          run <- run(tempDir, "next")
+          run <- run(tempDir, "next").provideCustomLayer(mockEnv)
         } yield run
       }
-      assertM(result)(equalTo("1.0.0"))
+      assertM(result)(isUnit)
     },
     testM("feature branch 1 (+major) and feature branch 2 (+minor) both advance version and should return version 1.0.0") {
+      val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("1.0.0"))
       val result = test { tempDir =>
         for {
           _ <- fix("code1.py", tempDir)
@@ -78,10 +85,10 @@ object EndToEndTests extends DefaultRunnableSpec {
           _ <- merge ("feature/f1", tempDir)
           _ <- merge ("feature/f2", tempDir)
           //_ <- println (ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
-          run <- run(tempDir, "next")
+          run <- run(tempDir, "next").provideCustomLayer(mockEnv)
         } yield run
       }
-      assertM(result)(equalTo("1.0.0"))
+      assertM(result)(isUnit)
     }
   )
 
@@ -93,7 +100,7 @@ object EndToEndTests extends DefaultRunnableSpec {
     }
   }
 
-  def run(tempDir: File, command: String): ZIO[zio.ZEnv, Throwable, String] = {
+  def run(tempDir: File, command: String): ZIO[zio.ZEnv, Throwable, Unit] = {
     // TODO provide layer with git that has different working dir
     mainImpl(List(command)).provideCustomLayer(Blocking.live >>> Git.live(Some(tempDir)))
   }

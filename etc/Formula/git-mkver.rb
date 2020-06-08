@@ -1,6 +1,6 @@
 class GitMkver < Formula
-  MKVER_VERSION = "1.0.0".freeze
-  MKVER_SHA256  = "d1546df319e236d038f7c6b3b88ca155fb882b237011c2cbd7e56e9a16b6ba56".freeze
+  MKVER_VERSION = "1.1.0".freeze
+  MKVER_SHA256  = "f69fb9b97f510b05455138fc202b53aa5d3f55af471d995bbe74888aeaea28db".freeze
 
   desc "Installs git-mkver from pre-built binaries"
   homepage "https://idc101.github.io/git-mkver/"

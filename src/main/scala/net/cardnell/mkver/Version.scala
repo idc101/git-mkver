@@ -7,12 +7,6 @@ sealed trait VersionMode
 object VersionMode {
   case object SemVer extends VersionMode
   case object YearMonth extends VersionMode
-
-  def read(value: String): Either[String, VersionMode] =
-    value match {
-      case "SemVer" => Right(SemVer)
-      case _ => Left("VersionMode must be one of: ")
-    }
 }
 
 sealed trait IncrementAction
@@ -23,16 +17,6 @@ object IncrementAction {
   case object IncrementMinor extends IncrementAction
   case object IncrementPatch extends IncrementAction
   case object NoIncrement extends IncrementAction
-
-  def read(value: String): Either[String, IncrementAction] =
-    value match {
-      case "Fail" => Right(Fail)
-      case "IncrementMajor" => Right(IncrementMajor)
-      case "IncrementMinor" => Right(IncrementMinor)
-      case "IncrementPatch" => Right(IncrementPatch)
-      case "NoIncrement" => Right(NoIncrement)
-      case _ => Left("IncrementAction should be one of Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
-    }
 }
 
 case class Version(major: Int,
@@ -91,8 +75,13 @@ case class Version(major: Int,
 }
 
 object Version {
+  val versionOnlyRegex = "(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)"
+  val prereleaseRegex = "(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
+  val metadataRegex = "(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?"
+  val versionFullRegex = s"$versionOnlyRegex$prereleaseRegex$metadataRegex"
+
   def parseTag(input: String, prefix: String): Option[Version] = {
-    val version = ("^" + prefix + "(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$").r
+    val version = ("^" + prefix + versionFullRegex + "$").r
 
     input match {
       case version(major, minor, patch, preRelease, buildMetaData) =>

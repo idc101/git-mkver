@@ -89,16 +89,27 @@ patches: [
       "**/Chart.yaml" # Chart.yaml in any subdirectory of the current working directory
       "Chart.yaml" # Chart.yaml the current working directory only
     ]
-    # search string, using java regular expression syntax (https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html)
-    find: "appVersion: .*"
-    # replacement string using substitutions from formats
-    replace: "appVersion: \"{Version}\""
+    # list of replacements to apply to files
+    replacements: [
+      {
+        # search string, using java regular expression syntax (https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html)
+        # find strings can include the special marker `{VersionRegex}` which will be replaced with the regular expression
+        # for a Semantic Version.
+        find: "appVersion: {VersionRegex}"
+        # replacement string using substitutions from formats
+        replace: "appVersion: \"{Version}\""
+      }
+    ]
   }
   {
     name: Csproj
     filePatterns: ["**/*.csproj"]
-    find: "<Version>.*</Version>"
-    replace: "<Version>{Version}</Version>"
+    replacements: [
+      {
+        find: "<Version>.*</Version>"
+        replace: "<Version>{Version}</Version>"
+      }
+    ]
   }
 ]
 # commitMessageActions configure how different commit messages will increment

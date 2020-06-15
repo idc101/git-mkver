@@ -28,7 +28,7 @@ object Formatter {
       case (false, true) => "{VersionBuildMetaData}"
       case (true, true) => "{VersionPreReleaseBuildMetaData}"
     }
-    Formatter(List(
+    val builtInFormats = (List(
       Format("Version", "{Major}.{Minor}.{Patch}"),
       Format("VersionPreRelease", "{Version}-{PreRelease}"),
       Format("VersionBuildMetaData", "{Version}+{BuildMetaData}"),
@@ -54,6 +54,7 @@ object Formatter {
       Format("TagPrefix", runConfig.tagPrefix)
     ) ++ envVariables()
       ++ azureDevOpsVariables())
+    Formatter(AppConfig.mergeFormats(runConfig.formats, builtInFormats))
   }
 
   def azureDevOpsVariables(): List[Format] = {

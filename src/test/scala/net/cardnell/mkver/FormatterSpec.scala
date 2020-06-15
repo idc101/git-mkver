@@ -58,6 +58,13 @@ object FormatterSpec extends DefaultRunnableSpec {
       val runConfig = RunConfig(true, "v", "release {Version}", "RC{PreReleaseNumber}", "{Branch}", true, Nil, IncrementAction.IncrementMinor, Nil, Nil)
       val formatter = Formatter(versionData, runConfig, true)
       assert(formatter.format("{Next}"))(equalTo("1.2.3-RC3+feature-f1"))
+    },
+    test("Picks up custom formats") {
+      val versionData = VersionData(1,2,3, None, 0, "master", "abcd", "abcdefg", LocalDate.now())
+      val formats = List(Format("Docker", "docker - {Version}"))
+      val runConfig = RunConfig(true, "v", "release {Version}", "RC{PreReleaseNumber}", "{Branch}", true, Nil, IncrementAction.IncrementMinor, formats, Nil)
+      val formatter = Formatter(versionData, runConfig, false)
+      assert(formatter.format("{Docker}"))(equalTo("docker - 1.2.3"))
     }
   )
 }

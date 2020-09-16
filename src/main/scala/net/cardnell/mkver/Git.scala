@@ -24,6 +24,9 @@ object Git {
           RIO.succeed(sys.env("BUILD_SOURCEBRANCH")
             .replace("refs/heads/", "")
             .replace("refs/", ""))
+        } else if (sys.env.contains("CI_COMMIT_REF_NAME")) {
+          // Gitlab CI
+          RIO.succeed(sys.env("CI_COMMIT_REF_NAME"))
         } else {
           // TODO better fallback if we in detached head mode like build systems do
           exec("git rev-parse --abbrev-ref HEAD", cwd).map(_.stdout)

@@ -27,6 +27,26 @@ patches: [
 
 # I would like a different version format for docker tags
 
-Docker does not support `+` symbols from semantics versions. Create a
-format for Docker tags. Additionally `master` branch should be a Version
-only while other branches should include build metadata.
+Docker does not support the `+` symbol from semantics versions. Create a
+format for Docker tags like so:
+
+```hocon
+branches: [
+  {
+    pattern: "master"
+    includeBuildMetaData: false
+    tag: true
+    formats: [
+      { name: Docker, format: "{Version}" }
+    ]
+  }
+  {
+    pattern: ".*"
+    formats: [
+      { name: Docker, format: "{Version}-{BuildMetaData}" }
+    ]
+  }
+]
+```
+
+Generate it with `git mkver next --format '{Docker}'`

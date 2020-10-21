@@ -103,7 +103,7 @@ object ConfigDesc {
   val patchConfigDesc = (
     string("name").describe("Name of patch, referenced from branch configs") |@|
       list("filePatterns")(string).describe("Files to apply find and replace in. Supports ** and * glob patterns.") |@|
-      listStrict("replacements")(replacementDesc).describe("Find and replace patterns")
+      list("replacements")(replacementDesc).describe("Find and replace patterns")
     )(PatchConfig.apply, PatchConfig.unapply)
 
   val commitMessageActionDesc = (
@@ -124,7 +124,7 @@ object ConfigDesc {
   val whenNoValidCommitMessages = string("whenNoValidCommitMessages")
     .xmapEither(ConfigDesc.readIncrementAction, (output: IncrementAction) => Right(output.toString))
     .describe("behaviour if no valid commit messages are found Fail|IncrementMajor|IncrementMinor|IncrementPatch|NoIncrement")
-  val formatsDesc = listStrict("formats")(ConfigDesc.formatDesc).describe("custom format strings")
+  val formatsDesc = list("formats")(ConfigDesc.formatDesc).describe("custom format strings")
   val patchesDesc = list("patches")(string).describe("Patch configs to be applied")
 
   val branchConfigDefaultsDesc = (
@@ -158,9 +158,9 @@ object AppConfig {
       .default(VersionMode.SemVer) |@|
       string("tagPrefix").describe("prefix for git tags").optional |@|
       nested("defaults")(ConfigDesc.branchConfigDefaultsDesc).optional |@|
-      listStrict("branches")(ConfigDesc.branchConfigDesc).optional |@|
-      listStrict("patches")(ConfigDesc.patchConfigDesc).optional |@|
-      listStrict("commitMessageActions")(ConfigDesc.commitMessageActionDesc).optional
+      list("branches")(ConfigDesc.branchConfigDesc).optional |@|
+      list("patches")(ConfigDesc.patchConfigDesc).optional |@|
+      list("commitMessageActions")(ConfigDesc.commitMessageActionDesc).optional
     )(AppConfig.apply, AppConfig.unapply)
   val runConfigDesc = (
         tagDesc |@|
@@ -169,10 +169,10 @@ object AppConfig {
           preReleaseFormatDesc |@|
           buildMetaDataFormatDesc |@|
           includeBuildMetaDataDesc |@|
-          listStrict("commitMessageActions")(ConfigDesc.commitMessageActionDesc) |@|
+          list("commitMessageActions")(ConfigDesc.commitMessageActionDesc) |@|
           whenNoValidCommitMessages |@|
           formatsDesc |@|
-          listStrict("patches")(ConfigDesc.patchConfigDesc)
+          list("patches")(ConfigDesc.patchConfigDesc)
     )(RunConfig.apply, RunConfig.unapply)
 
   val defaultDefaultBranchConfig: BranchConfigDefaults = BranchConfigDefaults(
@@ -280,7 +280,7 @@ object AppConfig {
   def tryLoadAppConfig(file: String): Task[AppConfig] = {
     for {
       configSource <- TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(file)))
-        .fold(l => Task.fail(MkVerException(l)), r => Task.succeed(r))
+        .fold(l => Task.fail(MkVerException(l.getMessage())), r => Task.succeed(r))
       appConfig <- read(AppConfig.appConfigDesc from configSource)
         .fold(l => Task.fail(MkVerException("Unable to parse config: " + l.prettyPrint())), r => Task.succeed(r))
     } yield appConfig

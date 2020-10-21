@@ -72,28 +72,37 @@ object Git {
 }
 
 object ProcessUtils {
-  def exec(command: String): RIO[Blocking, ProcessResult] = {
+  def exec(command: String): ZIO[Blocking, MkVerException, ProcessResult] = {
     exec(command.split(" "), None)
   }
 
-  def exec(command: String, dir: Option[File]): RIO[Blocking, ProcessResult] = {
+  def exec(command: String, dir: Option[File]): ZIO[Blocking, MkVerException, ProcessResult] = {
     exec(command.split(" "), dir)
   }
 
-  def exec(command: String, dir: File): RIO[Blocking, ProcessResult] = {
+  def exec(command: String, dir: File): ZIO[Blocking, MkVerException, ProcessResult] = {
     exec(command.split(" "), Some(dir))
   }
 
-  def exec(commands: Array[String], dir: Option[File] = None): RIO[Blocking, ProcessResult] = {
+  def exec(commands: Array[String], dir: Option[File] = None): ZIO[Blocking, MkVerException, ProcessResult] = {
     val processName = commands(0)
     val args = commands.tail
     val command = Command(processName, args:_*)
     val process = dir.map(d => command.workingDirectory(d.file))
       .getOrElse(command)
-    for {
+    val result = (for {
       p <- process.run
       lines <- p.stdout.string
+      linesStdErr <- p.stderr.string
       exitCode <- p.exitCode
-    } yield ProcessResult(lines.trim, "", exitCode)
+    } yield ProcessResult(lines.trim, linesStdErr.trim, exitCode.code)).mapError(ce => MkVerException(ce.toString))
+
+    result.flatMap { pr =>
+      if (pr.exitCode != 0) {
+        ZIO.fail(MkVerException(s"Git error: ${pr.stderr}"))
+      } else {
+        ZIO.succeed(pr)
+      }
+    }
   }
 }

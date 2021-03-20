@@ -19,8 +19,12 @@ patches: [
       "README.md"
       "docs/installation.md"
     ]
-    find: "\\d+\\.\\d+\\.\\d+"
-    replace: "{Next}"
+    replacements: [
+      {
+        find: "\\d+\\.\\d+\\.\\d+"
+        replace: "{Next}"
+      }
+    ]
   }
 ]
 ```

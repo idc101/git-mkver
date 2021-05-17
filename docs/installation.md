@@ -12,7 +12,8 @@ sudo mv git-mkver /usr/local/bin
 Install with [Homebrew](https://brew.sh):
 
 ```bash
-brew install https://raw.githubusercontent.com/idc101/git-mkver/master/etc/Formula/git-mkver.rb
+brew tap idc101/gitmkver
+brew install idc101/gitmkver/git-mkver
 ```
 
 ## Windows

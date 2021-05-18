@@ -32,6 +32,10 @@ object MkVerSpec extends DefaultRunnableSpec {
       test("should parse correctly") {
           assert(calcBumps(List("    major: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true))) &&
           assert(calcBumps(List("    feat: change", "    BREAKING CHANGE"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true, minor = true))) &&
+          assert(calcBumps(List("    feat!: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true))) &&
+          assert(calcBumps(List("    fix!: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true))) &&
+          assert(calcBumps(List("    patch!: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true))) &&
+          assert(calcBumps(List("    major(a component)!: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(major = true))) &&
           assert(calcBumps(List("    feat: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(minor = true))) &&
           assert(calcBumps(List("    fix: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
           assert(calcBumps(List("    patch: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&

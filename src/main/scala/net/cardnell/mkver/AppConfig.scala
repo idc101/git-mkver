@@ -192,7 +192,16 @@ object AppConfig {
     BranchConfig("hotfix[/-].*", Some(true), None, None, None, Some(false), None, None, None)
   )
   val defaultCommitMessageActions: List[CommitMessageAction] = List(
+    // Breaking changes (major)
     CommitMessageAction("BREAKING CHANGE", IncrementAction.IncrementMajor),
+    CommitMessageAction("major(\\(.+\\))?!:", IncrementAction.IncrementMajor),
+    CommitMessageAction("minor(\\(.+\\))?!:", IncrementAction.IncrementMajor),
+    CommitMessageAction("patch(\\(.+\\))?!:", IncrementAction.IncrementMajor),
+    CommitMessageAction("feature(\\(.+\\))?!:", IncrementAction.IncrementMajor),
+    CommitMessageAction("feat(\\(.+\\))?!:", IncrementAction.IncrementMajor),
+    CommitMessageAction("fix(\\(.+\\))?!:", IncrementAction.IncrementMajor),
+    // The rest of the conventional commits
+    CommitMessageAction("(build|ci|chore|docs|perf|refactor|revert|style|test)(\\(.+\\))?!:", IncrementAction.IncrementMajor),
     CommitMessageAction("major(\\(.+\\))?:", IncrementAction.IncrementMajor),
     CommitMessageAction("minor(\\(.+\\))?:", IncrementAction.IncrementMinor),
     CommitMessageAction("patch(\\(.+\\))?:", IncrementAction.IncrementPatch),

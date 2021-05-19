@@ -33,7 +33,7 @@ then
   DARWIN_SHA256=$(openssl dgst -sha256 target/git-mkver-darwin-amd64-$version.tar.gz | cut -f2 -d' ')
   LINUX_SHA256=$(openssl dgst -sha256 target/git-mkver-linux-amd64-$version.tar.gz | cut -f2 -d' ')
 
-  sed -i '' -e "s/MKVER_SHA256  = \".*\".freeze/MKVER_SHA256  = \"$DARWIN_SHA256\".freeze/g" etc/Formula/git-mkver.rb
+  sed -i '' -e "s/MKVER_SHA256  = \".*\".freeze/MKVER_SHA256  = \"$DARWIN_SHA256\".freeze/g" /usr/local/Homebrew/Library/Taps/idc101/homebrew-gitmkver/Casks/git-mkver.rb
 fi
 
 # Linux

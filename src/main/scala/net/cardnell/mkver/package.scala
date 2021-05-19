@@ -5,5 +5,5 @@ import zio.Has
 package object mkver {
   type Git = Has[Git.Service]
 
-  val GitMkverVersion = "1.2.0"
+  val GitMkverVersion = "1.2.1"
 }

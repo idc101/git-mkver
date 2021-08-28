@@ -1,7 +1,7 @@
 {
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Automatic Semantic Versioning for git based software development",
-  "url": "https://github.com/idc101/git-mkver/releases/download/v1.2.1/git-mkver-windows-amd64-1.2.1.zip",
+  "url": "https://github.com/idc101/git-mkver/releases/download/v1.2.2/git-mkver-windows-amd64-1.2.2.zip",
   "hash": "0269CA1E6ACB9D0759E137D1BC176079094CD8848B0A842224BC2AE9F7C77AE1",
   "extract_to": "",
   "bin": "git-mkver.exe"

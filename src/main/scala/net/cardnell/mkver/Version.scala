@@ -30,12 +30,10 @@ case class Version(major: Int,
         // Generating a non-pre-release version after a pre-release is always the version without pre-release
         // ... unless an override has been specified.
         bump(bumps.copy(major = false, minor = false, patch = false), None)
-      case (Some(pr), true) =>
+      case (Some(_), true) =>
         // Last version was a pre-release and next version is also a pre-release
-        // Parse Last PreRelease Number
-        val preReleaseNumber = "^.*(\\d+)$".r
-        val nextPreReleaseNumber = pr match {
-          case preReleaseNumber(lastPreReleaseNumber) => Some(lastPreReleaseNumber.toInt + 1)
+        val nextPreReleaseNumber = preReleaseNumber() match {
+          case Some(lastPreReleaseNumber) => Some(lastPreReleaseNumber + 1)
           case _ => Some(1)
         }
         if (bumps.branchNameOverride.exists(!equalsVersionCore(_)) ||
@@ -56,6 +54,18 @@ case class Version(major: Int,
       case (None, false) =>
         // Not a pre-release previously and next version is not a pre-release either
         bump(bumps, None)
+    }
+  }
+
+  def preReleaseNumber(): Option[Int] = {
+    val preReleaseNumber = "^.*(\\d+)$".r
+    preRelease match {
+      case Some(pr) =>
+        pr match {
+        case preReleaseNumber (lastPreReleaseNumber) => Some (lastPreReleaseNumber.toInt)
+        case _ => Some(0)
+        }
+      case _ => None
     }
   }
 
@@ -90,6 +100,22 @@ object Version {
         None
     }
   }
+
+  implicit val versionOrdering: Ordering[Version] = Ordering.fromLessThan((l, r) => {
+    (l.major.compare(r.major), l.minor.compare(r.minor), l.patch.compare(r.patch)) match {
+      case (0, 0, 0) => {
+        (l.preReleaseNumber(), r.preReleaseNumber()) match {
+          case (None, None) => false
+          case (Some(_), None) => true
+          case (None, Some(_)) => false
+          case (Some(lPreNum), Some(rPreNum)) => lPreNum < rPreNum
+        }
+      }
+      case (0, 0, _) => l.patch < r.patch
+      case (0, _, _) => l.minor < r.minor
+      case _ => l.major < r.major
+    }
+  })
 }
 
 case class NextVersion(major: Int,

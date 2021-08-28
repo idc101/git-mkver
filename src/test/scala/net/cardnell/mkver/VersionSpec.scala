@@ -68,6 +68,29 @@ object VersionSpec extends DefaultRunnableSpec {
       test("should parse VersionBuildMetaData with hyphen in BuildMetaData correctly") {
         assert(Version.parseTag("v10.5.3+build-1", "v"))(equalTo(Some(Version(10, 5, 3, None, Some("build-1")))))
       }
+    ),
+    suite("ordering")(
+      test("less than") {
+        assert(Version.versionOrdering.lt(Version(0, 2, 3, None, None), Version(1, 2, 3, None, None)))(equalTo(true))
+        assert(Version.versionOrdering.lt(Version(1, 1, 3, None, None), Version(1, 2, 3, None, None)))(equalTo(true))
+        assert(Version.versionOrdering.lt(Version(1, 2, 2, None, None), Version(1, 2, 3, None, None)))(equalTo(true))
+      },
+      test("equal") {
+        assert(Version.versionOrdering.lt(Version(1, 2, 3, None, None), Version(1, 2, 3, None, None)))(equalTo(false))
+      },
+      test("greater than") {
+        assert(Version.versionOrdering.lt(Version(2, 2, 3, None, None), Version(1, 2, 3, None, None)))(equalTo(false))
+        assert(Version.versionOrdering.lt(Version(1, 3, 3, None, None), Version(1, 2, 3, None, None)))(equalTo(false))
+        assert(Version.versionOrdering.lt(Version(1, 2, 4, None, None), Version(1, 2, 3, None, None)))(equalTo(false))
+      },
+      test("pre-release vs non pre-release less than") {
+        assert(Version.versionOrdering.lt(Version(1, 2, 3, Some("RC1"), None), Version(1, 2, 3, None, None)))(equalTo(true))
+        assert(Version.versionOrdering.lt(Version(1, 2, 3, None, None), Version(1, 2, 3, Some("RC1"), None)))(equalTo(false))
+      },
+      test("pre-release vs pre-release less than") {
+        assert(Version.versionOrdering.lt(Version(1, 2, 3, Some("RC1"), None), Version(1, 2, 3, Some("RC2"), None)))(equalTo(true))
+        assert(Version.versionOrdering.lt(Version(1, 2, 3, Some("RC2"), None), Version(1, 2, 3, Some("RC1"), None)))(equalTo(false))
+      },
     )
   )
 }

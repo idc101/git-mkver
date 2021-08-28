@@ -41,16 +41,6 @@ object MainSpec extends DefaultRunnableSpec {
           )
         val result = mainImpl(List("next")).provideCustomLayer(mockEnv)
         assertM(result)(isUnit)
-      },
-      testM("tag should return") {
-        val mockEnv: ULayer[Git] = (
-          GitMock.CheckGitRepo(unit) ++
-            GitMock.CurrentBranch(value("master")) ++
-            GitMock.CommitInfoLog(value("")) ++
-            GitMock.FullLog(equalTo(None), value(""))
-          )
-        val result = mainImpl(List("tag")).provideCustomLayer(mockEnv)
-        assertM(result)(isUnit)
       }
     )
   )

@@ -65,7 +65,7 @@ object Main extends App {
       nextVersion <- getNextVersion(config, currentBranch, tagOpts.preRelease)
       tag <- formatVersion(config, nextVersion, formatAsTag = true, preRelease = tagOpts.preRelease)
       tagMessage = Formatter(nextVersion, config, tagOpts.preRelease).format(config.tagMessageFormat)
-      _ <- Git.tag(tag, tagMessage) when (config.tag && nextVersion.commitCount > 0)
+      _ <- Git.tag(tag, tagMessage) when (config.tag)
     } yield ()
   }
 

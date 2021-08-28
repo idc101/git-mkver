@@ -33,7 +33,7 @@ object MkVer {
   }
 
   def getLastVersion(commitInfos: List[CommitInfo]): Option[LastVersion] = {
-    commitInfos.find(_.tags.nonEmpty).map(ci => LastVersion(ci.fullHash, ci.commitsBeforeHead, ci.tags.head))
+    commitInfos.find(_.tags.nonEmpty).map(ci => LastVersion(ci.fullHash, ci.commitsBeforeHead, ci.tags.max))
   }
 
   def formatVersion(config: RunConfig, versionData: VersionData, formatAsTag: Boolean, preRelease: Boolean): Task[String] = {

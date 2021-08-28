@@ -15,7 +15,7 @@ object MkVerSpec extends DefaultRunnableSpec {
               |2e79c27 2e79c27e2faf85ea241e1911788fd3582c5176ce
               |699068c 699068cdec9193878cc1fcfc44c7dd6d004621ff  (tag: other)
               |320ed50 320ed50d79cbd585d6a28842a340d9742d9327b1
-              |b3250df b3250df81f7ed389908a2aa89b32425a8ab8fb28  (tag: v0.1.0)
+              |b3250df b3250df81f7ed389908a2aa89b32425a8ab8fb28  (tag: v0.1.0-RC1, tag: v0.1.0)
               |9ded7b1 9ded7b1edf3c066b8c15839304d0427b06cdd020
               |""".stripMargin
 
@@ -51,6 +51,15 @@ object MkVerSpec extends DefaultRunnableSpec {
         assert(calcBumps(fullLog.linesIterator.toList, commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true, commitCount = 1)))
       }
     ),
+    suite("getLastVersion")(
+      test("should compare correctly") {
+        val commitInfos = List(
+          CommitInfo("b3250df", "b3250df81f7ed389908a2aa89b32425a8ab8fb28", 0, List(Version(0, 1, 0, Some("RC1")), Version(0, 1, 0))),
+          CommitInfo("9ded7b1", "9ded7b1edf3c066b8c15839304d0427b06cdd020", 1, List())
+        )
+        assert(getLastVersion(commitInfos))(equalTo(Some(LastVersion("b3250df81f7ed389908a2aa89b32425a8ab8fb28", 0, Version(0, 1, 0)))))
+      }
+    ),
     suite("getCommitInfos")(
       testM("parse commit Info Log correctly") {
         val mockEnv: ULayer[Git] =
@@ -63,7 +72,7 @@ object MkVerSpec extends DefaultRunnableSpec {
           CommitInfo("2e79c27", "2e79c27e2faf85ea241e1911788fd3582c5176ce", 3, List()),
           CommitInfo("699068c", "699068cdec9193878cc1fcfc44c7dd6d004621ff", 4, List()),
           CommitInfo("320ed50", "320ed50d79cbd585d6a28842a340d9742d9327b1", 5, List()),
-          CommitInfo("b3250df", "b3250df81f7ed389908a2aa89b32425a8ab8fb28", 6, List(Version(0, 1, 0))),
+          CommitInfo("b3250df", "b3250df81f7ed389908a2aa89b32425a8ab8fb28", 6, List(Version(0, 1, 0, Some("RC1")), Version(0, 1, 0))),
           CommitInfo("9ded7b1", "9ded7b1edf3c066b8c15839304d0427b06cdd020", 7, List()),
         )))
       }

@@ -30,3 +30,7 @@ scoop install https://raw.githubusercontent.com/idc101/git-mkver/master/etc/scoo
 2. Move it to a directory on your path
 
 That's it :-)
+
+## CI/Build Servers
+
+* [Github Setup Action for git-mkver](https://github.com/cperezabo/setup-git-mkver)

@@ -24,3 +24,7 @@ branches get different version numbers to develop or feature branches.
 ## Getting started
 
 [Install](installation) the binary and then read through the [usage](usage).
+
+## Related Projects
+
+* [Github Setup Action for git-mkver](https://github.com/cperezabo/setup-git-mkver)

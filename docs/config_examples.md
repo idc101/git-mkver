@@ -29,7 +29,7 @@ patches: [
 ]
 ```
 
-# I would like a different version format for docker tags
+## I would like a different version format for docker tags
 
 Docker does not support the `+` symbol from semantics versions. Create a
 format for Docker tags like so:

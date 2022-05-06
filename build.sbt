@@ -3,6 +3,9 @@ import Dependencies._
 ThisBuild / scalaVersion := "2.12.11"
 ThisBuild / version := "1.2.2"
 ThisBuild / organization := "net.cardnell"
+ThisBuild / maintainer := "idc101@users.noreply.github.com"
+
+enablePlugins(JavaAppPackaging)
 
 lazy val root = (project in file("."))
   .settings(

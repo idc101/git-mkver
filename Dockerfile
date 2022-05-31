@@ -1,11 +1,16 @@
-FROM ghcr.io/graalvm/graalvm-ce:latest
+FROM ubuntu:22.04
 
-RUN gu install native-image
+RUN apt-get update
+RUN apt-get -y install curl zip unzip git gcc zlib1g-dev
 
-# RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-# RUN yum -qq -y install curl
-# RUN curl -s https://get.sdkman.io | bash
-# RUN chmod a+x "$HOME/.sdkman/bin/sdkman-init.sh"
-# RUN source "$HOME/.sdkman/bin/sdkman-init.sh"
-#
-# RUN sdk install sbt
+RUN curl -s "https://get.sdkman.io" | bash
+ENV SDKMAN_INIT="/root/.sdkman/bin/sdkman-init.sh"
+
+SHELL ["/bin/bash", "-c"]
+
+RUN source "$SDKMAN_INIT" && \
+    sdk install java 22.1.0.r17-grl && \
+    sdk install sbt && \
+    gu install native-image
+
+CMD source "$SDKMAN_INIT" && ./build.sh

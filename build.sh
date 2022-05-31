@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# Note requires a previous version of git-mkver to have been built and on the path!
-git mkver -c git-mkver.conf patch
-version=`git mkver -c git-mkver.conf next`
+sbt -error -batch "run -c git-mkver.conf patch"
+version=`sbt -error -batch "run -c git-mkver.conf next"`
+arch=`arch`
 
 sbt assembly
 
@@ -12,27 +12,14 @@ if [[ "$(uname)" == "Darwin" ]]
 then
   pushd target
   native-image -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar
-  mv git-mkver-assembly-$version git-mkver-darwin-amd64-$version
-  cp git-mkver-darwin-amd64-$version git-mkver
+  mv git-mkver-assembly-$version git-mkver-darwin-$arch-$version
+  cp git-mkver-darwin-$arch-$version git-mkver
   chmod +x git-mkver
-  tar -cvzf git-mkver-darwin-amd64-$version.tar.gz git-mkver
+  tar -cvzf git-mkver-darwin-$arch-$version.tar.gz git-mkver
   rm git-mkver
   popd
 
-  # Linux
-  docker run -v $(pwd):/workspace -it git-mkver \
-    /bin/bash -c "cd /workspace/target; native-image -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar; mv git-mkver-assembly-$version git-mkver-linux-amd64-$version"
-
-  pushd target
-  cp git-mkver-linux-amd64-$version git-mkver
-  chmod +x git-mkver
-  tar -cvzf git-mkver-linux-amd64-$version.tar.gz git-mkver
-  rm git-mkver
-  popd
-
-  DARWIN_SHA256=$(openssl dgst -sha256 target/git-mkver-darwin-amd64-$version.tar.gz | cut -f2 -d' ')
-  LINUX_SHA256=$(openssl dgst -sha256 target/git-mkver-linux-amd64-$version.tar.gz | cut -f2 -d' ')
-
+  DARWIN_SHA256=$(openssl dgst -sha256 target/git-mkver-darwin-$arch-$version.tar.gz | cut -f2 -d' ')
   echo "DARWIN_SHA256=$DARWIN_SHA256"
   #sed -i '' -e "s/MKVER_SHA256  = \".*\".freeze/MKVER_SHA256  = \"$DARWIN_SHA256\".freeze/g" /usr/local/Homebrew/Library/Taps/idc101/homebrew-gitmkver/Casks/git-mkver.rb
 fi
@@ -42,10 +29,13 @@ if [[ "$(uname)" == "Linux" ]]
 then
   pushd target
   native-image -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar
-  mv git-mkver-assembly-$version git-mkver-linux-amd64-$version
-  cp git-mkver-linux-amd64-$version git-mkver
+  mv git-mkver-assembly-$version git-mkver-linux-$arch-$version
+  cp git-mkver-linux-$arch-$version git-mkver
   chmod +x git-mkver
-  tar -cvzf git-mkver-linux-amd64-$version.tar.gz git-mkver
+  tar -cvzf git-mkver-linux-$arch-$version.tar.gz git-mkver
   rm git-mkver
   popd
+
+  LINUX_SHA256=$(openssl dgst -sha256 target/git-mkver-linux-$arch-$version.tar.gz | cut -f2 -d' ')
+  echo "LINUX_SHA256=$LINUX_SHA256"
 fi

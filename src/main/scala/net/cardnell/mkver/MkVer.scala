@@ -105,7 +105,7 @@ object MkVer {
   }
 
   def calcBumps(lines: List[String], commitMessageActions: List[CommitMessageAction], bumps: VersionBumps): VersionBumps = {
-    val overrideRegex = "next-version: *(\\d+\\.\\d+\\.\\d+)".r
+    val overrideRegex = "    next-version: *(\\d+\\.\\d+\\.\\d+)".r
     if (lines.isEmpty) {
       bumps
     } else {

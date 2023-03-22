@@ -45,7 +45,8 @@ object MkVerSpec extends DefaultRunnableSpec {
           assert(calcBumps(List("    fix(a component): change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
           assert(calcBumps(List("    patch(a component): change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true))) &&
           assert(calcBumps(List("    some random commit"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps())) &&
-          assert(calcBumps(List("    Merged PR: feat: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(minor = true)))
+          assert(calcBumps(List("    Merged PR: feat: change"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(minor = true))) &&
+          assert(calcBumps(List("    next-version: 9.4.3"), commitMessageActions, VersionBumps()))(equalTo(VersionBumps(commitOverride = Some(Version(9, 4, 3)))))
       },
       test("should parse real log") {
         assert(calcBumps(fullLog.linesIterator.toList, commitMessageActions, VersionBumps()))(equalTo(VersionBumps(patch = true, commitCount = 1)))

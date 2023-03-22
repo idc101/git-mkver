@@ -127,6 +127,6 @@ commitMessageActions: [
   # The rest of the conventional commits
   {
     pattern: "(build|ci|chore|docs|perf|refactor|revert|style|test)(\\(.+\\))?:"
-    action: NoIncremen
+    action: NoIncrement
   }
 ```

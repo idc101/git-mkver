@@ -11,6 +11,8 @@ git-mkver will search for config in this order:
 The application uses the HOCON format. More details on the specification can be found
 [here](https://github.com/lightbend/config/blob/master/HOCON.md).
 
+Environment variables can be resolved in the config using the syntax `${?ENV_VAR_NAME}`.
+
 ## mkver.conf
 
 ```hocon

@@ -1,9 +1,9 @@
 import Dependencies._
 
-ThisBuild / scalaVersion := "2.12.11"
-ThisBuild / version := "1.3.0"
-ThisBuild / organization := "net.cardnell"
-ThisBuild / maintainer := "idc101@users.noreply.github.com"
+scalaVersion := "2.12.11"
+version := "1.3.0"
+organization := "net.cardnell"
+maintainer := "idc101@users.noreply.github.com"
 
 enablePlugins(JavaAppPackaging)
 

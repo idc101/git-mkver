@@ -39,3 +39,8 @@ then
   LINUX_SHA256=$(openssl dgst -sha256 target/git-mkver-linux-$arch-$version.tar.gz | cut -f2 -d' ')
   echo "LINUX_SHA256=$LINUX_SHA256"
 fi
+
+# build universal
+sbt universal:packageBin
+UNIVERSAL_SHA256=$(openssl dgst -sha256 target/universal/git-mkver-$version.zip | cut -f2 -d' ')
+echo "UNIVERSAL_SHA256=$UNIVERSAL_SHA256"

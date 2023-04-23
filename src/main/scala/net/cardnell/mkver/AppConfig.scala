@@ -288,7 +288,7 @@ object AppConfig {
 
   def tryLoadAppConfig(file: String): Task[AppConfig] = {
     for {
-      configSource <- TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(file)))
+      configSource <- TypesafeConfigSource.fromTypesafeConfig(ConfigFactory.parseFile(new java.io.File(file)).resolve())
         .fold(l => Task.fail(MkVerException(l.getMessage())), r => Task.succeed(r))
       appConfig <- read(AppConfig.appConfigDesc from configSource)
         .fold(l => Task.fail(MkVerException("Unable to parse config: " + l.prettyPrint())), r => Task.succeed(r))

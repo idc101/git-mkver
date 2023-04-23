@@ -21,7 +21,7 @@ brew install idc101/gitmkver/git-mkver
 Install with [scoop](https://scoop.sh):
 
 ```cmd
-scoop install https://raw.githubusercontent.com/idc101/git-mkver/master/etc/scoop/git-mkver.json
+scoop install https://raw.githubusercontent.com/idc101/git-mkver/main/etc/scoop/git-mkver.json
 ```
 
 ## Manual

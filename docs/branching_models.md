@@ -1,7 +1,7 @@
 # Branching Models
 
 Below are some popular git branching development models and how to configure them with git-mkver:
-- master (aka trunk) based development
+- main (aka trunk) based development
 - Git flow
 - GitHub flow
 
@@ -11,17 +11,17 @@ Regardless of the branching strategy, git-mkver uses the commit messages to dete
 
 See [Usage](usage) for more details.
 
-## master (aka trunk) based development
+## main (aka trunk) based development
 
 This mode of operation works out of the box with the default configuration.
 
 Overview:
 
-- Developers commit to master or work on feature branches
-- All releases are done from the master branch
-- Only the master branch is tagged
+- Developers commit to main or work on feature branches
+- All releases are done from the main branch
+- Only the main branch is tagged
 - Release Candidates are not used
-- Any version number not from master includes build metadata to indicate it is not an official release
+- Any version number not from main includes build metadata to indicate it is not an official release
 
 ### Build Server Setup
 

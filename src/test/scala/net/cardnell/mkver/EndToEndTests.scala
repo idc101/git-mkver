@@ -20,7 +20,7 @@ object EndToEndTests extends DefaultRunnableSpec {
       }
       assertM(result)(isUnit)
     },
-    testM("master advances correctly and should return version 0.1.1") {
+    testM("main advances correctly and should return version 0.1.1") {
       val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("0.1.1"))
       val result = test { tempDir =>
         for {
@@ -33,7 +33,7 @@ object EndToEndTests extends DefaultRunnableSpec {
       }
       assertM(result)(isUnit)
     },
-    testM("feature branch (+minor) and master (+major) both advance version and should return version 1.0.0") {
+    testM("feature branch (+minor) and main (+major) both advance version and should return version 1.0.0") {
       val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("1.0.0"))
       val result = test { tempDir =>
         for {
@@ -41,7 +41,7 @@ object EndToEndTests extends DefaultRunnableSpec {
           _ <- run(tempDir, "tag")
           _ <- branch("feature/f1", tempDir)
           _ <- feat("code2.py", tempDir)
-          _ <- checkout("master", tempDir)
+          _ <- checkout("main", tempDir)
           _ <- major("code3.py", tempDir)
           _ <- merge("feature/f1", tempDir)
           //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
@@ -50,7 +50,7 @@ object EndToEndTests extends DefaultRunnableSpec {
       }
       assertM(result)(isUnit)
     },
-    testM("feature branch (+major) and master (+minor) both advance version and should return version 1.0.0") {
+    testM("feature branch (+major) and main (+minor) both advance version and should return version 1.0.0") {
       val mockEnv: ULayer[Console] = MockConsole.PutStrLn(equalTo("1.0.0"))
       val result = test { tempDir =>
         for {
@@ -58,7 +58,7 @@ object EndToEndTests extends DefaultRunnableSpec {
           _ <- run(tempDir, "tag")
           _ <- branch("feature/f1", tempDir)
           _ <- major("code2.py", tempDir)
-          _ <- checkout("master", tempDir)
+          _ <- checkout("main", tempDir)
           _ <- feat("code3.py", tempDir)
           _ <- merge("feature/f1", tempDir)
           //_ <- println(ProcessUtils.exec("git log --graph --full-history --color --oneline", Some(tempDir)).stdout)
@@ -76,11 +76,11 @@ object EndToEndTests extends DefaultRunnableSpec {
 
           _ <- branch ("feature/f1", tempDir)
           _ <- feat ("code2.py", tempDir)
-          _ <- checkout ("master", tempDir)
+          _ <- checkout ("main", tempDir)
 
           _ <- branch ("feature/f2", tempDir)
           _ <- major ("code3.py", tempDir)
-          _ <- checkout ("master", tempDir)
+          _ <- checkout ("main", tempDir)
 
           _ <- merge ("feature/f1", tempDir)
           _ <- merge ("feature/f2", tempDir)
@@ -107,7 +107,7 @@ object EndToEndTests extends DefaultRunnableSpec {
 
   def init(tempDir: File): RIO[Blocking, Unit] = {
     for {
-      _ <- exec(Array("git", "init"), Some(tempDir))
+      _ <- exec(Array("git", "init", "--initial-branch=main"), Some(tempDir))
       _ <- exec(Array("git", "config", "user.name", "Mona Lisa"), Some(tempDir))
       _ <- exec(Array("git", "config", "user.email", "mona.lisa@email.org"), Some(tempDir))
     } yield ()

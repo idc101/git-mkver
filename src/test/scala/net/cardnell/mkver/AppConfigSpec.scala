@@ -6,8 +6,8 @@ import zio.test.Assertion._
 object AppConfigSpec extends DefaultRunnableSpec {
   def spec = suite("AppConfigSpec") (
     suite("getRunConfig") (
-      testM("master should return master config") {
-        assertM(AppConfig.getRunConfig(None, "master"))(
+      testM("main should return main config") {
+        assertM(AppConfig.getRunConfig(None, "main"))(
           hasField("tag", _.tag, equalTo(true))
         )
       },

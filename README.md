@@ -16,7 +16,7 @@ For more information head to the [project site](https://idc101.github.io/git-mkv
 - Tag the current commit with the next version number
 
 Works out of the box with trunk based development, GitFlow and GithubFlow. Alternatively all of this can be configured
-based on the branch name so release/master branches get different version numbers to develop or feature branches.
+based on the branch name so release/main branches get different version numbers to develop or feature branches.
 
 ## Installation
 

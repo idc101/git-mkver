@@ -34,7 +34,7 @@ object MainSpec extends DefaultRunnableSpec {
       testM("next should return") {
         val mockEnv: ULayer[Git with Console] = (
           GitMock.CheckGitRepo(unit) ++
-            GitMock.CurrentBranch(value("master")) ++
+            GitMock.CurrentBranch(value("main")) ++
             GitMock.CommitInfoLog(value("")) ++
             GitMock.FullLog(equalTo(None), value("")) ++
             MockConsole.PutStrLn(equalTo("0.1.0"))
@@ -47,7 +47,7 @@ object MainSpec extends DefaultRunnableSpec {
 
   // TODO stop this actually patching files!
   //  "patch" should "return " in {
-  //    val result = new Main(fakeGit("master", "", "v0.0.0-1-gabcdef")).mainImpl(Array("patch"))
+  //    val result = new Main(fakeGit("main", "", "v0.0.0-1-gabcdef")).mainImpl(Array("patch"))
   //    result should be(Right(""))
   //  }
 }

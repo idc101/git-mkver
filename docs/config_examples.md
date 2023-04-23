@@ -37,7 +37,7 @@ format for Docker tags like so:
 ```hocon
 branches: [
   {
-    pattern: "master"
+    pattern: "main"
     includeBuildMetaData: false
     tag: true
     formats: [

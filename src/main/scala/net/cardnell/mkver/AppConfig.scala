@@ -187,6 +187,7 @@ object AppConfig {
   )
   val defaultBranchConfigs: List[BranchConfig] = List(
     BranchConfig("master", Some(true), None, None, None, Some(false), None, None, None),
+    BranchConfig("main", Some(true), None, None, None, Some(false), None, None, None),
     BranchConfig("rel[/-].*", Some(true), None, None, None, Some(false), None, None, None),
     BranchConfig("release[/-].*", Some(true), None, None, None, Some(false), None, None, None),
     BranchConfig("hotfix[/-].*", Some(true), None, None, None, Some(false), None, None, None)

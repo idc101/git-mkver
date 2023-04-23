@@ -2,7 +2,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@gitgraph/js"></script>
 
-<div id="master-version-inc-container"></div>
+<div id="main-version-inc-container"></div>
 
 <!-- Use the `GitgraphJS` global variable to create your graph -->
 <script>
@@ -26,7 +26,7 @@ var withoutHash = GitgraphJS.templateExtend(GitgraphJS.TemplateName.Metro, {
 
 function f1() {
     // Get the graph container HTML element.
-    const graphContainer = document.getElementById("master-version-inc-container");
+    const graphContainer = document.getElementById("main-version-inc-container");
 
     // Instantiate the graph.
     const gitgraph = GitgraphJS.createGitgraph(graphContainer, {
@@ -34,8 +34,8 @@ function f1() {
     });
     
     // Simulate git commands with Gitgraph API.
-    const master = gitgraph.branch("master");
-    master
+    const main = gitgraph.branch("main");
+    main
       .commit("some code").tag("v4.2.5")
       .commit("feat: some more code").tag("v4.3.0")
       .commit("fix: a fix")
@@ -53,6 +53,6 @@ function f1() {
     //develop.merge(aFeature);
     //develop.commit("Prepare v1");
     
-    //master.merge(develop).tag("v1.0.0");
+    //main.merge(develop).tag("v1.0.0");
 }
 </script>

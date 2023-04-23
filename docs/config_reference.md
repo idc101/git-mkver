@@ -9,7 +9,7 @@ git-mkver will search for config in this order:
 - `mkver.conf` in the current working directory
   
 The application uses the HOCON format. More details on the specification can be found
-[here](https://github.com/lightbend/config/blob/master/HOCON.md).
+[here](https://github.com/lightbend/config/blob/main/HOCON.md).
 
 Environment variables can be resolved in the config using the syntax `${?ENV_VAR_NAME}`.
 
@@ -65,7 +65,7 @@ defaults {
 # branches are tried for matches in order
 branches: [
   {
-    pattern: "master"
+    pattern: "main"
     tag: true
     includeBuildMetaData: false
   }

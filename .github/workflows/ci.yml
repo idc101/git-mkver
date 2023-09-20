@@ -12,31 +12,21 @@ on:
       - master
 
 jobs:
-
-  build:
-
-    strategy:
-      matrix:
-        targetplatform: [x64]
-
+  build-on-windows:
     runs-on: windows-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
-
       # Install the .NET Core workload
       - name: Install .NET Core
         uses: actions/setup-dotnet@v3
-
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '19'
           cache: 'sbt'
-
       - uses: graalvm/setup-graalvm@v1
         with:
           version: '22.3.0'
@@ -44,19 +34,68 @@ jobs:
           components: 'native-image'
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
-
       - name: Build with SBT
         run: sbt assembly
-
       - name: Generate native image
         run: |
           cd target\scala-2.12
           $TEST = Get-ChildItem git-mkver-assembly-*.jar | Select-Object -ExpandProperty Name
           native-image -jar $TEST --no-fallback
           cd ..\..\
-
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
           name: git-mkver
           path: target\scala-2.12\git-mkver-*.exe
+  build-on-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '19'
+          cache: 'sbt'
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          version: '22.3.0'
+          java-version: '19'
+          components: 'native-image'
+          # github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+      - name: Build
+        run: ./build.sh
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: git-mkver
+          path: target/scala-2.12/git-mkver-*
+  build-on-mac-x64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '19'
+          cache: 'sbt'
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          version: '22.3.0'
+          java-version: '19'
+          components: 'native-image'
+          # github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+      - name: Build
+        run: ./build.sh
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: git-mkver
+          path: target/scala-2.12/git-mkver-*

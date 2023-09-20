@@ -11,7 +11,7 @@ sbt assembly
 if [[ "$(uname)" == "Darwin" ]]
 then
   pushd target
-  native-image -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar
+  native-image --static -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar
   mv git-mkver-assembly-$version git-mkver-darwin-$arch-$version
   cp git-mkver-darwin-$arch-$version git-mkver
   chmod +x git-mkver
@@ -28,7 +28,7 @@ fi
 if [[ "$(uname)" == "Linux" ]]
 then
   pushd target
-  native-image -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar
+  native-image --static -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar
   mv git-mkver-assembly-$version git-mkver-linux-$arch-$version
   cp git-mkver-linux-$arch-$version git-mkver
   chmod +x git-mkver

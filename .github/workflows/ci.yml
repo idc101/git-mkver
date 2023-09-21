@@ -6,7 +6,6 @@ on:
     branches:
       - master
       - patch-*
-      - ci-build
   pull_request:
     branches:
       - master

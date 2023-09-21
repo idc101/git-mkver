@@ -1,7 +1,7 @@
 import Dependencies._
 
 scalaVersion := "2.12.11"
-version := "1.3.0"
+version := "1.4.0+ci-build.2fd9c7f"
 organization := "net.cardnell"
 maintainer := "idc101@users.noreply.github.com"
 

@@ -37,16 +37,12 @@ jobs:
       - name: Build with SBT
         run: sbt assembly
       - name: Generate native image
-        run: |
-          cd target\scala-2.12
-          $TEST = Get-ChildItem git-mkver-assembly-*.jar | Select-Object -ExpandProperty Name
-          native-image -jar $TEST --no-fallback
-          cd ..\..\
+        run: build-windows.cmd
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
           name: git-mkver
-          path: target\scala-2.12\git-mkver-*.exe
+          path: target\scala-2.12\git-mkver-windows-amd64-*.zip
   build-on-linux:
     runs-on: ubuntu-latest
     steps:
@@ -67,12 +63,38 @@ jobs:
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
       - name: Build
-        run: ./build.sh
+        run: ./build-linux.sh
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
           name: git-mkver
-          path: target/scala-2.12/git-mkver-*
+          path: target/git-mkver-linux-*.tar.gz
+  build-universal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '19'
+          cache: 'sbt'
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          version: '22.3.0'
+          java-version: '19'
+          components: 'native-image'
+          # github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+      - name: Build
+        run: ./build-universal.sh
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: git-mkver
+          path: target/universal/git-mkver-*.zip
   build-on-mac-x64:
     runs-on: macos-latest
     steps:
@@ -93,9 +115,9 @@ jobs:
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
       - name: Build
-        run: ./build.sh
+        run: ./build-macos.sh
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
           name: git-mkver
-          path: target/scala-2.12/git-mkver-*
+          path: target/git-mkver-darwin-*.tar.gz

@@ -25,12 +25,12 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '19'
+          java-version: '20'
           cache: 'sbt'
       - uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
-          java-version: '19'
+          java-version: '20'
           components: 'native-image'
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
@@ -51,12 +51,12 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '19'
+          java-version: '20'
           cache: 'sbt'
       - uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
-          java-version: '19'
+          java-version: '20'
           components: 'native-image'
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
@@ -77,12 +77,12 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '19'
+          java-version: '20'
           cache: 'sbt'
       - uses: graalvm/setup-graalvm@v1
         with:
           distribution: 'graalvm'
-          java-version: '19'
+          java-version: '20'
           components: 'native-image'
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
@@ -103,12 +103,12 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '19'
+          java-version: '20'
           cache: 'sbt'
       - uses: graalvm/setup-graalvm@v1
         with:
-          version: '22.3.0'
-          java-version: '19'
+          distribution: 'graalvm'
+          java-version: '20'
           components: 'native-image'
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'

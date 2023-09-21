@@ -34,10 +34,8 @@ jobs:
           components: 'native-image'
           # github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
-      - name: Build with SBT
-        run: sbt assembly
-      - name: Generate native image
-        run: build-windows.cmd
+      - name: Build
+        run: .\build-windows.ps1
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:

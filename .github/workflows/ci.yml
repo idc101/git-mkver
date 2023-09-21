@@ -16,7 +16,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
       # Install the .NET Core workload
@@ -37,15 +37,15 @@ jobs:
       - name: Build
         run: .\build-windows.ps1
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: git-mkver
+          name: git-mkver-windows
           path: target\scala-2.12\git-mkver-windows-amd64-*.zip
   build-on-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
       - uses: actions/setup-java@v3
@@ -63,15 +63,15 @@ jobs:
       - name: Build
         run: ./build-linux.sh
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: git-mkver
+          name: git-mkver-linux
           path: target/git-mkver-linux-*.tar.gz
   build-universal:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
       - uses: actions/setup-java@v3
@@ -79,25 +79,18 @@ jobs:
           distribution: 'temurin'
           java-version: '20'
           cache: 'sbt'
-      - uses: graalvm/setup-graalvm@v1
-        with:
-          distribution: 'graalvm'
-          java-version: '20'
-          components: 'native-image'
-          # github-token: ${{ secrets.GITHUB_TOKEN }}
-          native-image-job-reports: 'true'
       - name: Build
         run: ./build-universal.sh
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: git-mkver
+          name: git-mkver-universal
           path: target/universal/git-mkver-*.zip
   build-on-mac-x64:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
       - uses: actions/setup-java@v3
@@ -115,7 +108,7 @@ jobs:
       - name: Build
         run: ./build-macos.sh
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: git-mkver
+          name: git-mkver-darwin
           path: target/git-mkver-darwin-*.tar.gz

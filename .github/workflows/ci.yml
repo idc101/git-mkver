@@ -25,7 +25,7 @@ jobs:
       - name: Build
         run: .\build-windows.ps1
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: git-mkver-windows
           path: target\release\git-mkver-windows-amd64-*.zip
@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: ./build-linux.sh
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: git-mkver-linux
           path: target/git-mkver-linux-*.tar.gz
@@ -63,7 +63,7 @@ jobs:
       - name: Build
         run: ./build-macos.sh
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: git-mkver-darwin
           path: target/git-mkver-darwin-*.tar.gz

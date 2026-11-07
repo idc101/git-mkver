@@ -1,15 +1,14 @@
 #!/bin/bash
 set -e
 
-sbt -error -batch "run -c git-mkver.conf patch"
-version=`sbt -error -batch "run -c git-mkver.conf next"`
-arch=`arch`
+cargo run --quiet -- -c git-mkver.conf patch
+version=$(cargo run --quiet -- -c git-mkver.conf next)
+arch=$(arch)
 
-sbt assembly
+cargo build --release
 
 pushd target
-native-image --static -H:IncludeResources='.*conf$' --no-fallback -jar scala-2.12/git-mkver-assembly-$version.jar
-mv git-mkver-assembly-$version git-mkver-linux-$arch-$version
+cp release/git-mkver git-mkver-linux-$arch-$version
 cp git-mkver-linux-$arch-$version git-mkver
 chmod +x git-mkver
 tar -cvzf git-mkver-linux-$arch-$version.tar.gz git-mkver

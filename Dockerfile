@@ -1,16 +1,6 @@
-FROM ubuntu:22.04
+FROM rust:1-bookworm
 
-RUN apt-get update
-RUN apt-get -y install curl zip unzip git gcc zlib1g-dev
+RUN apt-get update && apt-get -y install git zip unzip openssl
 
-RUN curl -s "https://get.sdkman.io" | bash
-ENV SDKMAN_INIT="/root/.sdkman/bin/sdkman-init.sh"
-
-SHELL ["/bin/bash", "-c"]
-
-RUN source "$SDKMAN_INIT" && \
-    sdk install java 22.1.0.r17-grl && \
-    sdk install sbt && \
-    gu install native-image
-
-CMD source "$SDKMAN_INIT" && ./build.sh
+WORKDIR /workspace
+CMD ["./build-linux.sh"]

@@ -1,14 +1,14 @@
 name: Git Mkver Build
 
-# Trigger on every master branch push and pull request
+# Trigger on every main branch push and pull request
 on:
   push:
     branches:
-      - master
+      - main
       - patch-*
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   build-on-windows:

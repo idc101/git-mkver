@@ -47,7 +47,7 @@ jobs:
         with:
           name: git-mkver-linux
           path: target/git-mkver-linux-*.tar.gz
-  build-on-mac-x64:
+  build-on-mac:
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -56,6 +56,8 @@ jobs:
           fetch-depth: 0
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
       - name: Test
         run: cargo test
       - name: Build

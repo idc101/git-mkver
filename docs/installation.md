@@ -3,7 +3,7 @@
 ## Linux
 
 ```bash
-curl -L https://github.com/idc101/git-mkver/releases/download/v1.4.0/git-mkver-linux-x86_64-1.4.0.tar.gz | tar xvz
+curl -L https://github.com/idc101/git-mkver/releases/download/v2.0.0/git-mkver-linux-x86_64-2.0.0.tar.gz | tar xvz
 sudo mv git-mkver /usr/local/bin
 ```
 

@@ -2,7 +2,7 @@
 set -e
 
 cargo run --quiet -- -c git-mkver.conf patch
-version=$(cargo run --quiet -- -c git-mkver.conf next)
+version=$(cargo run --quiet -- -c git-mkver.conf next -f '{Version}')
 
 rustup target add x86_64-apple-darwin aarch64-apple-darwin
 cargo build --release --target x86_64-apple-darwin

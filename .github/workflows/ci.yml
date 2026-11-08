@@ -1,14 +1,19 @@
 name: Git Mkver Build
 
-# Trigger on every main branch push and pull request
+# Trigger on every main branch push, version tag push, and pull request
 on:
   push:
     branches:
       - main
       - patch-*
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
+
+permissions:
+  contents: write
 
 jobs:
   build-on-windows:
@@ -29,6 +34,7 @@ jobs:
         with:
           name: git-mkver-windows
           path: target\release\git-mkver-windows-amd64-*.zip
+
   build-on-linux:
     runs-on: ubuntu-latest
     steps:
@@ -47,6 +53,7 @@ jobs:
         with:
           name: git-mkver-linux
           path: target/git-mkver-linux-*.tar.gz
+
   build-on-mac:
     runs-on: macos-latest
     steps:
@@ -67,3 +74,25 @@ jobs:
         with:
           name: git-mkver-darwin
           path: target/git-mkver-darwin-*.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build-on-windows
+      - build-on-linux
+      - build-on-mac
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/git-mkver-windows-amd64-*.zip
+            artifacts/git-mkver-linux-*.tar.gz
+            artifacts/git-mkver-darwin-*.tar.gz
+          generate_release_notes: true

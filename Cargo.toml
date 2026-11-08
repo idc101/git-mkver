@@ -1,6 +1,6 @@
 [package]
 name = "git-mkver"
-version = "1.4.0"
+version = "2.0.0"
 edition = "2021"
 authors = ["idc101@users.noreply.github.com"]
 description = "Automatic Semantic Versioning for git based software development"

@@ -6,7 +6,7 @@ pub mod git;
 pub mod mkver;
 pub mod version;
 
-pub const GIT_MKVER_VERSION: &str = "1.4.0";
+pub const GIT_MKVER_VERSION: &str = "2.0.0";
 
 use std::path::Path;
 use regex::Regex;

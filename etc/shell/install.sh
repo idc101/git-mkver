@@ -1,5 +1,5 @@
 #/bin/bash
-MKVER_VERSION=1.4.0
+MKVER_VERSION=2.0.0
 
 # Mac
 if [[ "$(uname)" == "Darwin" ]]

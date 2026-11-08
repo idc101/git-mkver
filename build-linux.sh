@@ -2,7 +2,7 @@
 set -e
 
 cargo run --quiet -- -c git-mkver.conf patch
-version=$(cargo run --quiet -- -c git-mkver.conf next)
+version=$(cargo run --quiet -- -c git-mkver.conf next -f '{Version}')
 arch=$(arch)
 
 cargo build --release

@@ -1,6 +1,6 @@
 # Get the version from the git command
 & cargo run --quiet -- -c git-mkver.conf patch
-$VERSION = & cargo run --quiet -- -c git-mkver.conf next
+$VERSION = & cargo run --quiet -- -c git-mkver.conf next -f '{Version}'
 
 & cargo build --release
 Set-Location -Path target\release

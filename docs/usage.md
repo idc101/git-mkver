@@ -68,7 +68,7 @@ $ git mkver tag
 
 The next version number will be determined based on the commit messages since
 the last version was tagged. The commit messages that trigger different version
-increments are [configurable](config_reference) but by default they are based on
+increments are [configurable](config_reference.md) but by default they are based on
 the [Conventional Commit](https://www.conventionalcommits.org/) specification
 as follows:
 
@@ -115,13 +115,13 @@ the version number for that branch to `1.2.3`:
 ## Common arguments
 
 All commands take a `-c <FILE>` or `--config <FILE>` option to set the config file to read. More details on the
-[Config Reference](config_reference) page.
+[Config Reference](config_reference.md) page.
 
 ## Patching versions in files
 
 If you would like to patch version numbers in files prior to building and tagging then
 you can use the `patch` command. The files to be patched and the replacements are
-defined in the `mkver.conf` [config](config) file.
+defined in the `mkver.conf` [config reference](config_reference.md) file.
 
 For example, suppose you have the version number in a code file:
 ```scala

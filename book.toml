@@ -1,0 +1,12 @@
+[book]
+title = "git-mkver"
+authors = ["Iain Cardnell"]
+description = "Automatic Semantic Versioning for git based software development"
+language = "en"
+src = "docs"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/idc101/git-mkver"

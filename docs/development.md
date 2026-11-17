@@ -1,19 +1,24 @@
 # Development
 
-## Graal Native Image
+## Prerequisites
 
-## Windows
+- [Rust](https://www.rust-lang.org/) (cargo, rustc)
 
-Launch _Windows SDK 7.1 Command Prompt_
+## Building
 
-set JAVA_HOME=C:\Users\iain\Tools\graalvm-ce-java8-20.0.0\jre
-set PATH=%JAVA_HOME%\bin;%PATH%
-
-```
-sbt assembly
-native-image -jar target\scala-2.12\git-mkver-assembly-0.4.0.jar --no-fallback
+```bash
+cargo build
 ```
 
-## MacOs
+## Running Tests
 
-## Linux
+```bash
+cargo test
+```
+
+## Building Release Binaries
+
+The project includes build scripts for each platform:
+- Linux: `./build-linux.sh`
+- macOS: `./build-macos.sh`
+- Windows: `.\build-windows.ps1`

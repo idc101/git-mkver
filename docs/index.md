@@ -23,7 +23,7 @@ branches get different version numbers to develop or feature branches.
 
 ## Getting started
 
-[Install](installation) the binary and then read through the [usage](usage).
+[Install](installation.md) the binary and then read through the [usage](usage.md).
 
 ## Related Projects
 

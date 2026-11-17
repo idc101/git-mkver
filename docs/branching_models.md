@@ -9,7 +9,7 @@ Below are some popular git branching development models and how to configure the
 
 Regardless of the branching strategy, git-mkver uses the commit messages to determine the next version number. 
 
-See [Usage](usage) for more details.
+See [Usage](usage.md) for more details.
 
 ## main (aka trunk) based development
 
